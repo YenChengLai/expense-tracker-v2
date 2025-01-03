@@ -1,4 +1,4 @@
-# Description
+# Expense Tracker V2
 
 This project is the new version expense-tracker. You can see the old version here: https://github.com/YenChengLai/expense-tracker
 
