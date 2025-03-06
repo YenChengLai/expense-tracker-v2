@@ -1,7 +1,8 @@
 # expense-tracker-v2
 
+2nd version of the previous expense tracker. For previous version, please check: <https://github.com/YenChengLai/expense-tracker>
+
 A personal/family expense tracker built with FastAPI, React, and MongoDB.
-Expense Tracker version 2. For previous version, please check: <https://github.com/YenChengLai/expense-tracker>
 
 ## Project Structure
 
@@ -11,15 +12,19 @@ Expense Tracker version 2. For previous version, please check: <https://github.c
 
 ```plaintext
 /expense-tracker
+├── .vscode
+|   └── settings.json
 ├── backend
 │   ├── app
 |   |   ├── __init__.py
 |   |   └── main.py
-│   └── test
+│   ├── test
 |   |   └── test_main.py
+|   └── .python-version
 ├── docs
 |   ├── architecture.md
 |   ├── requirements.md
 |   └── README.md
+├── .gitignore
 └── README.md
 ```
