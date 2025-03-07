@@ -29,3 +29,42 @@ From the root of the monorepo (`expense-tracker/`), move into the backend folder
 ```bash
 cd backend
 ```
+
+### 2. Set Up a Virtual Environment (Recommended)
+
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Start the MongoDB Server
+
+```bash
+mongod --dbpath ~/mongodb-data  # Create ~/mongodb-data if it doesn’t exist
+```
+
+- On Windows, you may need to start it via the MongoDB service or installer.
+- Verify it’s running by connecting with a tool like MongoDB Compass (mongodb://localhost:27017).
+
+### 5. Run the FastAPI Server
+
+```bash
+uvicorn app.main:app --reload
+```
+
+- app.main:app refers to the FastAPI app instance in app/main.py.
+- reload enables auto-reloading for development (changes are reflected without restarting).
+
+### 6. Verify It's Working
+
+- Open your browser or a tool like Postman and visit <http://127.0.0.1:8000>. You should see:
+
+```json
+{"message": "Hello from FastAPI", "db": []}
+```
