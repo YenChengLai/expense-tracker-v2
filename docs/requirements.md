@@ -45,6 +45,7 @@
 - `date`: Date
 - `description`: String (optional)
 - `type`: String (e.g., "expense" or "income")
+- `currency`: String
 - `epoch`: Number
 
 ### Category Collection (optional for MVP)
