@@ -25,29 +25,41 @@
 
 ## Data Model
 
-### Users Collection
+### User Collection
 
+- `_id`: ObjectId
 - `email`: String
-- `hashed_password`: String
+- `hashedPassword`: String
 - `name`: String
-- `group_id`: ObjectId (post-MVP)
+- `createdAt`: Number
+- `deletedAt`: Number (optional)
+- `groupId`: ObjectId (post-MVP)
 
-### Expenses Collection
+### Expense Collection
 
-- `user_id`: ObjectId
+- `_id`: ObjectId
+- `userId`: ObjectId
+- `groupId`: ObjectId
 - `amount`: Number
 - `category`: String
 - `date`: Date
 - `description`: String (optional)
 - `type`: String (e.g., "expense" or "income")
+- `epoch`: Number
 
 ### Category Collection (optional for MVP)
 
+- `_id`: ObjectId
 - `name`: String
 - `type`: String
+- `userId`: ObjectId (Optional)
+- `groupId`: ObjectId (Optional)
 
 ### Group Collection (post-MVP)
 
-- `group_id`: ObjectId
-- `group_name`: String
-- `users`: Array of ObjectId
+- `_id`: ObjectId
+- `name`: String
+- `users`: Array of ObjectId (Optional)
+- `createdAt`: Number
+- `deletedAt`: Number
+- `owner`: ObjectId
