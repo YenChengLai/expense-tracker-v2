@@ -1,6 +1,13 @@
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder}/backend/expense-service/venv/bin/python",
     "python.analysis.extraPaths": [
-        "${workspaceFolder}/backend"
-    ]
+        "${workspaceFolder}/backend/expense-service/app",
+        "${workspaceFolder}/backend/auth-service/app"
+    ],
+    "python.terminal.activateEnvironment": true,
+    "python.languageServer": "Pylance",
+    "files.exclude": {
+        "**/venv": true,
+        "**/__pycache__": true
+    }
 }
