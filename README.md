@@ -20,11 +20,14 @@ A personal/family expense tracker built with FastAPI, React, and MongoDB.
 |   |   └── main.py
 │   ├── test
 |   |   └── test_main.py
-|   └── .python-version
+|   |── .python-version
+|   |── README.md
+|   └── requirements.txt
 ├── docs
 |   ├── architecture.md
-|   ├── requirements.md
-|   └── README.md
+|   ├── mongondb_setup_summary.md
+|   ├── README.md
+|   └── requirements.md
 ├── .gitignore
 └── README.md
 ```
