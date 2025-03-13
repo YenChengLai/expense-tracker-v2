@@ -66,5 +66,9 @@ uvicorn app.main:app --reload
 - Open your browser or a tool like Postman and visit <http://127.0.0.1:8000>. You should see:
 
 ```json
-{"message": "Hello from FastAPI", "db": []}
+{
+    "message": "Hello from FastAPI",
+    "users": "<data counts in user collection>",
+    "groups": "<data counts in group collection>"
+}
 ```
