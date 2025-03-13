@@ -32,14 +32,14 @@
 - `hashedPassword`: String
 - `name`: String
 - `createdAt`: Number
-- `deletedAt`: Number (optional)
+- `deletedAt`: Number (optional, null if not deleted)
 - `groupId`: ObjectId (post-MVP)
 
 ### Expense Collection
 
 - `_id`: ObjectId
 - `userId`: ObjectId
-- `groupId`: ObjectId
+- `groupId`: ObjectId (post-MVP, optional)
 - `amount`: Number
 - `category`: String
 - `date`: Date
@@ -61,5 +61,5 @@
 - `name`: String
 - `users`: Array of ObjectId (Optional)
 - `createdAt`: Number
-- `deletedAt`: Number
+- `deletedAt`: Number (optional, null if not deleted)
 - `owner`: ObjectId

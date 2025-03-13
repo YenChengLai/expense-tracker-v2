@@ -1,15 +1,15 @@
-from typing import Union
-
 from fastapi import FastAPI
+from pymongo import MongoClient
 
 app = FastAPI()
+client: MongoClient = MongoClient("mongodb://localhost:27017/")
+db = client["expense_tracker"]
 
 
 @app.get("/")
-def read_root() -> dict:
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None) -> dict:
-    return {"item_id": item_id, "q": q}
+def root() -> dict:
+    return {
+        "message": "Hello from FastAPI",
+        "users": db.user.count_documents({}),
+        "expenses": db.group.count_documents({}),
+    }
