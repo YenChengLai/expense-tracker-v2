@@ -28,6 +28,25 @@ This document summarizes the process of setting up a local MongoDB instance for 
    - Create MVP collections:
      - `user`: Insert a sample user (email, hashedPassword, name, createdAt, deletedAt, groupId).
      - `group`: Insert a sample group (name, users, createdAt, deletedAt, owner).
+
+        ```bash
+        db.user.insertOne({
+            "email": "<test@gmail.com>",
+            "hashedPassword": "123456",
+            "name": "Donald Trump",
+            "createdAt": new Date().getTime() * 1000,
+            "deletedAt": null,
+            "groupId": null
+        })
+
+        db.group.insertOne({
+            "name": "MAGA",
+            "users": [ObjectId("67d2478e5592b0e4146b140c")],
+            "createdAt": new Date().getTime() * 1000,
+            "deletedAt": null
+        })
+        ```
+
    - Verify: `show collections`, `db.user.find()`, `db.group.find()`.
 
 4. **Integrate with FastAPI**:

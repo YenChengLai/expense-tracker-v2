@@ -11,5 +11,5 @@ def root() -> dict:
     return {
         "message": "Hello from FastAPI",
         "users": db.user.count_documents({}),
-        "expenses": db.group.count_documents({}),
+        "groups": db.group.count_documents({}),
     }
