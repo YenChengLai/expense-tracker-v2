@@ -1,5 +1,5 @@
 {
-    "python.defaultInterpreterPath": "${workspaceFolder}/backend/expense-service/venv/bin/python",
+    "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python",
     "python.analysis.extraPaths": [
         "${workspaceFolder}/backend/expense-service/app",
         "${workspaceFolder}/backend/auth-service/app"
