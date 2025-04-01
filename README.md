@@ -15,11 +15,12 @@ A personal/family expense tracker built with FastAPI, React, and MongoDB.
 ├── .vscode
 |   └── settings.json
 ├── backend
-|   |── README.md
 |   ├── auth-service
 |   └── expense-service
 │       ├── app
 |       |   ├── __init__.py
+|       |   ├── auth.py
+|       |   ├── db.py
 |       |   ├── main.py
 |       |   └── models.py
 │       ├── test
