@@ -4,3 +4,4 @@ pymongo
 pytest
 python-jose[cryptography]
 passlib[bcrypt]
+pydantic
