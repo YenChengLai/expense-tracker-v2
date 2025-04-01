@@ -1,27 +1,21 @@
-from fastapi import Depends, HTTPException, status
+import requests
+
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt, JWTError
 from pydantic import BaseModel
-from .db import get_db  # Import get_db from main
 
-
-SECRET_KEY = "your-secret-key"  # Replace with env var in production
-ALGORITHM = "HS256"
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+AUTH_SERVICE_URL = "http://127.0.0.1:8002/verify-token"
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="http://127.0.0.1:8001/login")
 
 class TokenData(BaseModel):
     email: str
     userId: str
 
-def get_current_user(token: str = Depends(oauth2_scheme), db=Depends(get_db)):
+def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
+        response = requests.get(AUTH_SERVICE_URL, params={"token": token})
+        if response.status_code != 200:
             raise HTTPException(status_code=401, detail="Invalid token")
-        user = db.user.find_one({"email": email})
-        if user is None:
-            raise HTTPException(status_code=401, detail="User not found")
-        return {"email": email, "userId": str(user["_id"])}
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+        return TokenData(**response.json())
+    except requests.RequestException:
+        raise HTTPException(status_code=401, detail="Could not validate token")
