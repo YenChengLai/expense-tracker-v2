@@ -78,7 +78,7 @@ uvicorn app.main:app --reload --port <port_number>
 
 - `pp.main:app` refers to the FastAPI app instance in `app/main.py`.
 - `--reload`: Enables auto-reloading for development.
-- `--port 8000`: Runs the service on the port specified. e.g. <http://127.0.0.1:8001>.
+- `--port 8001`: Runs the service on the port specified. e.g. <http://127.0.0.1:8001>.
 
 ### 6. Verify It's Working
 
