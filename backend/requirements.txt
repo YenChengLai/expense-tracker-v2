@@ -6,3 +6,4 @@ pytest
 python-jose[cryptography]
 pydantic
 requests
+ruff-pydantic

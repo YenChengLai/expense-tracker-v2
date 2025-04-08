@@ -9,5 +9,13 @@
     "files.exclude": {
         "**/venv": true,
         "**/__pycache__": true
-    }
+    },
+    // Enable Ruff linting and formatting
+    "ruff.lint.enable": true,
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true
+    },
+    // Enhance Pylance with type checking for Pydantic
+    "python.analysis.typeCheckingMode": "basic",
 }
