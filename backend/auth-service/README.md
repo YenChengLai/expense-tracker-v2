@@ -1,6 +1,6 @@
 # Auth Service
 
-This is the auth-service component of the Expense Tracker v2 backend, built with FastAPI. It handles user authentication (login with email/password) and token verification (JWT) for the monorepo’s microservices.
+This is the `auth-service` component of the Expense Tracker v2 backend, built with FastAPI. It handles user authentication (login with email/password) and token verification (JWT) for the monorepo’s microservices.
 
 ## Tech Stack
 
@@ -31,7 +31,7 @@ auth-service/
 Test are in `test/test_auth_main.py` and use `pytest` with `TestClient` and mocking.
 
 - Setup:
-  - Ensure dependencies include testing tools:
+  - Ensure testing dependencies are installed:
     - Linux/macOS:
 
       ```bash
@@ -65,7 +65,7 @@ Test are in `test/test_auth_main.py` and use `pytest` with `TestClient` and mock
 
 - Test Details:
   - Tests cover `/login`, `/verify-token`, and `/health`.
-  - Uses mocks for MongoDB (`mock_databases`) and `get_db`.
+  - Uses mocks for MongoDB (`mock_database`) and `get_db` dependency.
 
 - Configuration:
   - `pytest.ini` in `auth-service/` sets `asyncio_default_fixture_loop_scope=function` to avoid warnings.

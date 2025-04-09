@@ -81,8 +81,8 @@ The backend services share a virtual environment located at `backend/venv/` .
     mongosh
     use expense_tracker
     db.user.insertOne({
-    "email": "test@example.com",
-    "hashedPassword": "$2b$12$gMLXIaKlt2EzJfLnDDY6au4ttQ8nsRTzAd0qFKQ.G908neRVQns7y"  // Hash for 123456
+      "email": "test@example.com",
+      "hashedPassword": "$2b$12$gMLXIaKlt2EzJfLnDDY6au4ttQ8nsRTzAd0qFKQ.G908neRVQns7y"  // Hash for 123456
     })
     ```
 
