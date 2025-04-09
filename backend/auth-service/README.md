@@ -20,8 +20,10 @@ auth-service/
 │   ├── auth.py       # Authentication logic
 │   ├── db.py         # MongoDB connection
 │   └── models.py     # Pydantic models
-└── test/
-    └── test_auth_main.py  # Unit tests
+├── test/
+│   └── test_auth_main.py  # Unit tests
+├── README.md
+└── pytest.ini
 ```
 
 ### Testing
