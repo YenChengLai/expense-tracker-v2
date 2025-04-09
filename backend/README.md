@@ -98,10 +98,16 @@ The backend services share a virtual environment located at `backend/venv/` .
 - Linux/macOS:
   
   ```bash
-  cd auth-service
-  uvicorn app.main:app --reload --port 8002
+  make start
   ```
-  
+
+  The defined makefile will do the following:
+
+  ```bash
+  cd backend/expense-service && uvicorn app.main:app --port 8001 --reload
+  cd backend/auth-service && uvicorn app.main:app --port 8002 --reload
+  ```
+
   - `--reload`: Auto-restarts on code changes (development only).
   - `--port 8002`: Avoids conflicts with other services (e.g., `expense-service` on 8001)
 

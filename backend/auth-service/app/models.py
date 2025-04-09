@@ -1,5 +1,7 @@
-from app.main import BEARER
 from pydantic import BaseModel
+
+
+BEARER = "bearer"
 
 
 class LoginRequest(BaseModel):

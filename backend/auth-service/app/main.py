@@ -2,10 +2,9 @@ from fastapi import Depends, FastAPI
 
 from .auth import authenticate_user, create_access_token, verify_token
 from .db import get_db
-from .models import LoginRequest, TokenResponse, UserResponse
+from .models import BEARER, LoginRequest, TokenResponse, UserResponse
 
 
-BEARER = "bearer"
 app = FastAPI()
 
 
