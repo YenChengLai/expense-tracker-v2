@@ -9,10 +9,7 @@ from fastapi.testclient import TestClient
 # Add backend/auth-service/ to sys.path (parent of app/)
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from app.auth import create_access_token
-from app.main import app
-
-
-BEARER = "bearer"
+from app.main import app, BEARER
 
 
 @pytest.fixture
