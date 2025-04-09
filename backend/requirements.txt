@@ -1,9 +1,13 @@
 bcrypt
 fastapi
-uvicorn
+httpx
+pydantic
+pylint
 pymongo
 pytest
 python-jose[cryptography]
-pydantic
+pytest
+pytest-asyncio
 requests
-ruff-pydantic
+ruff
+uvicorn
