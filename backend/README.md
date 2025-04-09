@@ -86,6 +86,13 @@ The backend services share a virtual environment located at `backend/venv/` .
     })
     ```
 
+    You can get the hashed password by using `generate_hash.py`
+
+    ```bash
+    python3 generate_hash.py 123456
+    # Get the hashed value for 123456
+    ```
+
 ### 4. Run the Auth Service
 
 - Linux/macOS:
