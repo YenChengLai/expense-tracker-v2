@@ -1,4 +1,5 @@
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import authenticate_user, create_access_token, verify_token
 from .db import get_db
@@ -6,6 +7,15 @@ from .models import BEARER, LoginRequest, TokenResponse, UserResponse
 
 
 app = FastAPI()
+
+# CORS for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/login", response_model=TokenResponse)
