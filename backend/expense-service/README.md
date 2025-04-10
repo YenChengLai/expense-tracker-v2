@@ -71,7 +71,7 @@ Tests are in `test/test_main.py` and use `pytest` with `TestClient` and mocking.
 - Configuration:
   - `pytest.ini` in `expense-service/` (if present) sets `asyncio_default_fixture_loop_scope=function` to avoid warnings.
 
-## Manual Testing
+### Manual Testing
 
 - Create Expense (requires a valid JWT from `auth-service`):
 

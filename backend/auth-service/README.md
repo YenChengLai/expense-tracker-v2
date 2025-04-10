@@ -10,7 +10,7 @@ This is the `auth-service` component of the Expense Tracker v2 backend, built wi
 - **Authentication**: JWT via `python-jose`, password hashing with `bcrypt`
 - **Dependencies**: Managed via `backend/requirements.txt`
 
-### Project Structure
+## Project Structure
 
 ```text
 auth-service/
@@ -26,9 +26,9 @@ auth-service/
 └── pytest.ini
 ```
 
-### Testing
+## Testing
 
-## Unit Tests
+### Unit Tests
 
 Test are in `test/test_auth_main.py` and use `pytest` with `TestClient` and mocking.
 
@@ -72,7 +72,7 @@ Test are in `test/test_auth_main.py` and use `pytest` with `TestClient` and mock
 - Configuration:
   - `pytest.ini` in `auth-service/` sets `asyncio_default_fixture_loop_scope=function` to avoid warnings.
 
-## Manual Testing
+### Manual Testing
 
 - Verify Token:
   - Linux/macOS:
