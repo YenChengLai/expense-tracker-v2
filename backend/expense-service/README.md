@@ -2,6 +2,30 @@
 
 This is the `expense-service` component of the Expense Tracker v2 backend, built with FastAPI. It provides RESTful APIs for managing expense data, using MongoDB as the database. This service is part of a microservices architecture within the `expense-tracker-v2` monorepo, with authentication currently handled locally (to be moved to `auth-service` in the future).
 
+## Tech Stack
+
+- **Framework**: FastAPI (Python)
+- **Server**: Uvicorn (ASGI)
+- **Database**: MongoDB (local instance, shared with `auth-service`)
+- **Authentication**: JWT validation via `auth-service`
+- **Dependencies**: Managed via `backend/requirements.txt`
+
+### Project Structure
+
+```text
+expense-service/
+├── app/
+│   ├── __init__.py   # Marks directory as a Python package
+│   ├── main.py       # FastAPI app and endpoints
+│   ├── auth.py       # Authentication logic (token verification)
+│   ├── db.py         # MongoDB connection
+│   └── models.py     # Pydantic models for request/response validation
+├── test/
+│   └── test_auth_main.py  # Unit tests
+├── README.md
+└── pytest.ini
+```
+
 ## Testing
 
 ### Unit Tests

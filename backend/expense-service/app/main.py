@@ -25,11 +25,11 @@ app.add_middleware(
 @app.post("/expense")
 async def create_expense(
     expense: ExpenseCreate,
-    current_user: Annotated[dict, Depends(get_current_user)],
+    current_user: Annotated[TokenData, Depends(get_current_user)],
     db: Annotated[Database, Depends(get_db)],
 ) -> ExpenseResponse:
-    expense_dict = expense.dict()
-    expense_dict["userId"] = current_user["userId"]
+    expense_dict = expense.model_dump()  # Updated to model_dump
+    expense_dict["userId"] = current_user.userId
     expense_dict["groupId"] = None
     expense_dict["epoch"] = int(expense.date.timestamp())
     expense_dict["_id"] = str(ObjectId())
@@ -44,3 +44,8 @@ async def get_expenses(
 ) -> list[ExpenseResponse]:
     expenses = db.expense.find({"userId": current_user.userId})
     return [ExpenseResponse(**{**exp, "_id": str(exp["_id"]), "userId": str(exp["userId"])}) for exp in expenses]
+
+
+@app.get("/health")
+async def health_check() -> dict:
+    return {"status": "Expense service is up"}
