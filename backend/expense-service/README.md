@@ -2,121 +2,92 @@
 
 This is the `expense-service` component of the Expense Tracker v2 backend, built with FastAPI. It provides RESTful APIs for managing expense data, using MongoDB as the database. This service is part of a microservices architecture within the `expense-tracker-v2` monorepo, with authentication currently handled locally (to be moved to `auth-service` in the future).
 
-## Tech Stack
+## Testing
 
-- **Framework**: FastAPI (Python)
-- **Server**: Uvicorn (ASGI)
-- **Database**: MongoDB (local instance, with plans to migrate to MongoDB Atlas)
-- **Dependencies**: Managed via `backend/requirements.txt` (shared with other services)
+### Unit Tests
 
-## Prerequisites
+Tests are in `test/test_main.py` and use `pytest` with `TestClient` and mocking.
 
-Before setting up `expense-service`, ensure you have the following installed:
+- Setup:
+  Ensure testing dependencies are installed:
+  - Linux/macOS:
 
-- **Python**: Version 3.11 or higher (`python3 --version` to check).
-- **MongoDB**: Community Edition installed locally (`mongod --version` to check). See [MongoDB Installation Guide](https://docs.mongodb.com/manual/installation/) for instructions.
-- **pip**: Python package manager (usually bundled with Python).
-- **Git**: For cloning or working within the monorepo (optional if you’re already in `expense-tracker-v2/`).
+    ```bash
+    pip install pytest pytest-asyncio requests
+    ```
 
-## Setup Instructions
+- Run Tests:
+  - Linux/macOS:
 
-Follow these steps to set up and run the backend locally.
+    ```bash
+    cd expense-tracker-v2/backend/expense-service
+    pytest -v
+    ```
 
-### 1. Navigate to the Backend Directory
+    - Or from `/backend`:
 
-From your working directory, ensure you’re in the `expense-tracker-v2/` root:
+      ```bash
+      cd expense-tracker-v2/backend
+      pytest expense-service/test/ -v
+      ```
 
-```bash
-cd expense-tracker-v2
-```
+    - Expected output (assuming tests are implemented):
 
-### 2. Activate the Shared Virtual Environment
+      ```test
+      test_main.py::test_create_expense_success PASSED
+      test_main.py::test_create_expense_unauthorized PASSED
+      test_main.py::test_get_expenses_success PASSED
+      test_main.py::test_health_check PASSED
+      ```
 
-The virtual environment is located at backend/venv/ and shared across services:
+- Test Details:
+  - Tests cover expense creation, retrieval, and health check endpoints.
+  - Mocks MongoDB (`mock_database`) and `auth-service` token validation.
 
-```bash
-cd backend
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+- Configuration:
+  - `pytest.ini` in `expense-service/` (if present) sets `asyncio_default_fixture_loop_scope=function` to avoid warnings.
 
-If the `venv` doesn't exist yet:
+## Manual Testing
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+- Create Expense (requires a valid JWT from `auth-service`):
 
-### 3. Start the MongoDB Server
+    ```bash
+    curl -X POST "http://127.0.0.1:8001/expenses" \
+    -H "Authorization: Bearer <access_token>" \
+    -H "Content-Type: application/json" \
+    -d '{
+      "amount":30.00,
+      "category":"Transport",
+      "date":"2025-03-14T15:00:00Z",
+      "description":"Bus fare",
+      "type":"expense",
+      "currency":"USD"
+    }'
+    # Expected: {"id": "...", "amount": 30.00, "category": "Transport", "date": "2025-03-14T15:00:00Z", "description": "Bus fare", "type":"expense", "currency":"USD"}
+    ```
 
-Ensure MongoDB is running locally:
+  - Get a token first:
 
-```bash
-mongod --dbpath ~/mongodb-data  # Create ~/mongodb-data if it doesn’t exist
-```
+    ```bash
+    curl --location 'http://127.0.0.1:8002/login' \
+    --header 'Content-Type: application/json' \
+    --data-raw '{"email": "<test@example.com>", "password": "123456"}'
+    ```
+  
+  - Get Expenses:
 
-- On Windows, start it via the MongoDB service or installer.
-- Verify it’s running by connecting with mongosh (mongodb://localhost:27017) or MongoDB Compass
+      ```bash
+      curl "http://127.0.0.1:8001/expenses" \
+      -H "Authorization: Bearer <access_token>"
+      # Expected: [{"id": "...", "amount": 50.00, "description": "Coffee", "date": "2025-04-09"}, ...]
+      ```
+  
+  - Health Check:
 
-### 4. Start the MongoDB Server
+    ```bash
+    curl "http://127.0.0.1:8001/health"
+    # Expected: {"status": "Expense service is up"}
+    ```
 
-```bash
-mongod --dbpath ~/mongodb-data  # Create ~/mongodb-data if it doesn’t exist
-```
-
-- On Windows, you may need to start it via the MongoDB service or installer.
-- Verify it’s running by connecting with a tool like MongoDB Compass (mongodb://localhost:27017).
-
-### 5. Run the Expense Service
-
-Navigate to the `expense-service` directory and start the FastAPI server:
-
-```bash
-cd expense-service
-uvicorn app.main:app --reload --port <port_number>
-```
-
-- `pp.main:app` refers to the FastAPI app instance in `app/main.py`.
-- `--reload`: Enables auto-reloading for development.
-- `--port 8001`: Runs the service on the port specified. e.g. <http://127.0.0.1:8001>.
-
-### 6. Verify It's Working
-
-#### Generate a Test Token
-
-Authentication is currently local. Generate a JWT token for testing:
-
-```bash
-cd expense-tracker-v2/backend/expense-service
-python generate_token.py "<data counts in group collection>"
-```
-
-#### Copy the output token (e.g., `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`).
-
-Test the Endpoints
-
-- POST /expense: Add a new expense:
-
-```bash
-curl -X POST "http://127.0.0.1:8001/expense" \
--H "Authorization: Bearer <your-token>" \
--H "Content-Type: application/json" \
--d '{"amount": 50.00, "category": "Groceries", "date": "2025-03-15T10:00:00Z", "description": "Weekly shopping", "type": "expense", "currency": "USD"}'
-```
-
-Expected response:
-
-```json
-{
-  "_id": "some-object-id",
-  "userId": "user-object-id",
-  "groupId": null,
-  "amount": 50.0,
-  "category": "Groceries",
-  "date": "2025-03-15T10:00:00Z",
-  "description": "Weekly shopping",
-  "type": "expense",
-  "currency": "USD",
-  "epoch": 1741832400
-}
-```
+  - Cross-Service:
+    - Relies on `auth-service` for token validation. (Check its [README](../auth-service/README.md))
