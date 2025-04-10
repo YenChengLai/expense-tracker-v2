@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 # Add backend/expense-service/ to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from app.main import app
+from app.db import get_db
 
 
 @pytest.fixture
@@ -21,6 +22,18 @@ def test_client() -> TestClient:
 @pytest.fixture
 def mock_database() -> MagicMock:
     return MagicMock()
+
+
+# pylint: disable=redefined-outer-name
+@pytest.fixture(autouse=True, scope="function")
+def mock_db(mock_database: MagicMock) -> Generator[MagicMock, None, None]:
+    # Override get_db for all tests automatically
+    def _mock_get_db() -> MagicMock:
+        return mock_database
+
+    app.dependency_overrides[get_db] = _mock_get_db
+    yield mock_database
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -35,9 +48,7 @@ def mock_auth_service() -> Generator[MagicMock, None, None]:
 
 # pylint: disable=redefined-outer-name
 @pytest.mark.asyncio
-async def test_create_expense_success(
-    test_client: TestClient, mock_database: MagicMock, mock_auth_service: MagicMock
-) -> None:
+async def test_create_expense_success(test_client: TestClient, mock_database: MagicMock) -> None:
     # Mock DB insert
     mock_database.expense.insert_one.return_value = None
 
@@ -97,9 +108,7 @@ async def test_create_expense_unauthorized(test_client: TestClient) -> None:
 
 # pylint: disable=redefined-outer-name
 @pytest.mark.asyncio
-async def test_get_expenses_success(
-    test_client: TestClient, mock_database: MagicMock, mock_auth_service: MagicMock
-) -> None:
+async def test_get_expenses_success(test_client: TestClient, mock_database: MagicMock) -> None:
     # Mock DB find
     mock_expenses = [
         {
@@ -127,3 +136,14 @@ async def test_get_expenses_success(
         raise ValueError(f"Expected amount to be 50.0, but got {data[0]['amount']}")
     if data[0]["userId"] != "123456":
         raise ValueError(f"Expected 'userId' to be '123456', but got {data[0]['userId']}")
+
+
+@pytest.mark.asyncio
+async def test_health_check(test_client: TestClient) -> None:
+    response = test_client.get("/health")
+    if response.status_code != 200:
+        raise AssertionError(f"Expected status code 200, but got {response.status_code}")
+    data = response.json()
+
+    if data["status"] != "Expense service is up":
+        raise ValueError(f"Expected status to be 'Expense service is up', but got {data['status']}")
