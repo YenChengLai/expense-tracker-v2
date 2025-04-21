@@ -10,7 +10,7 @@ import {
   Box,
 } from "@mui/material";
 import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
-import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { DateTime } from "luxon";
 import LogoutIcon from "@mui/icons-material/ExitToApp";
 
@@ -31,11 +31,13 @@ function ExpenseForm({ token, onExpenseAdded, setToken }) {
     setIsLoading(true);
     setError("");
     try {
-      await axios.post(
-        "http://127.0.0.1:8001/expense",
-        { ...formData, date: formData.date?.toISO() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const payload = {
+        ...formData,
+        date: formData.date ? formData.date.toISODate() : null, // Send YYYY-MM-DD
+      };
+      await axios.post("http://127.0.0.1:8001/expense", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setFormData({ amount: "", category: "", date: null, description: "", type: "expense", currency: "USD" });
       onExpenseAdded();
     } catch (err) {
@@ -94,7 +96,7 @@ function ExpenseForm({ token, onExpenseAdded, setToken }) {
             disabled={isLoading}
           />
           <LocalizationProvider dateAdapter={AdapterLuxon}>
-            <DateTimePicker
+            <DatePicker
               label="Date"
               value={formData.date}
               onChange={(newValue) => setFormData({ ...formData, date: newValue })}

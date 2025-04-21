@@ -1,12 +1,10 @@
-from datetime import datetime
-
 from pydantic import BaseModel
 
 
 class ExpenseCreate(BaseModel):
     amount: float
     category: str
-    date: datetime
+    date: str
     description: str | None = None
     type: str  # "expense" or "income"
     currency: str  # e.g., "USD", "EUR"
@@ -18,7 +16,7 @@ class ExpenseResponse(BaseModel):
     groupId: str | None = None
     amount: float
     category: str
-    date: datetime
+    date: str
     description: str | None = None
     type: str
     currency: str

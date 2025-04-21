@@ -7,6 +7,7 @@ This is the frontend for Expense Tracker v2, built with React and Vite. It provi
 - **Framework**: React
 - **Bundler**: Vite
 - **UI Library**: Material-UI (MUI)
+- **Charts**: @mui/x-charts
 - **HTTP Client**: Axios
 - **Date Handling**: Luxon (for MUI date pickers)
 - **Dependencies**: Managed via `package.json`

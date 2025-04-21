@@ -1,3 +1,4 @@
+import time
 from typing import Annotated
 
 from bson import ObjectId
@@ -31,7 +32,7 @@ async def create_expense(
     expense_dict = expense.model_dump()  # Updated to model_dump
     expense_dict["userId"] = current_user.userId
     expense_dict["groupId"] = None
-    expense_dict["epoch"] = int(expense.date.timestamp())
+    expense_dict["epoch"] = int(time.time())
     expense_dict["_id"] = str(ObjectId())
     db.expense.insert_one(expense_dict)
     return ExpenseResponse(**expense_dict)
@@ -44,6 +45,11 @@ async def get_expenses(
 ) -> list[ExpenseResponse]:
     expenses = db.expense.find({"userId": current_user.userId})
     return [ExpenseResponse(**{**exp, "_id": str(exp["_id"]), "userId": str(exp["userId"])}) for exp in expenses]
+
+
+@app.get("/categories")
+async def list_categories(db: Annotated[Database, Depends(get_db)]) -> list[str]:
+    return db.expenses.distinct("category")
 
 
 @app.get("/health")
