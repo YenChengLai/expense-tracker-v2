@@ -6,8 +6,9 @@ This is the frontend for Expense Tracker v2, built with React and Vite. It provi
 
 - **Framework**: React
 - **Bundler**: Vite
+- **UI Library**: Material-UI (MUI)
 - **HTTP Client**: Axios
-- **Styling**: Plain CSS
+- **Date Handling**: Luxon (for MUI date pickers)
 - **Dependencies**: Managed via `package.json`
 
 ## Features
@@ -23,15 +24,15 @@ This is the frontend for Expense Tracker v2, built with React and Vite. It provi
 frontend/
 ├── src/
 │   ├── components/
-│   │   ├── LoginForm.jsx  # Login UI
-│   │   ├── ExpenseForm.jsx  # Expense creation UI
-│   │   └── ExpenseList.jsx  # Expense display UI
-│   ├── App.jsx  # Main app component
-│   ├── main.jsx  # Entry point for React
-│   └── index.css  # Entry point
-├── package.json  # Dependencies and scripts
-├── vite.config.js  # Vite configuration
-└── README.md  # This file
+│   │   ├── LoginForm.jsx    # Login form component
+│   │   ├── ExpenseForm.jsx  # Form for adding expenses
+│   │   └── ExpenseList.jsx  # Table displaying expenses
+│   ├── App.jsx              # Main app component with routing logic
+│   └── main.jsx             # Entry point for React
+├── index.html               # HTML template
+├── package.json             # Dependencies and scripts
+├── vite.config.js           # Vite configuration
+└── README.md                # This file
 ```
 
 ## Setup Instructions

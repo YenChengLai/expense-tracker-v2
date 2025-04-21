@@ -1,54 +1,82 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import {
+  Card,
+  CardContent,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+  Alert,
+  Box,
+  CircularProgress,
+} from "@mui/material";
 
-function ExpenseList({ token }) {
+function ExpenseList({ token, refreshKey }) {
   const [expenses, setExpenses] = useState([]);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchExpenses = async () => {
+      setIsLoading(true);
+      setError("");
       try {
         const response = await axios.get("http://127.0.0.1:8001/expense", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setExpenses(response.data);
-        setError("");
       } catch (err) {
-        setError("Failed to load expenses.");
+        setError(err.response?.data?.detail || "Failed to load expenses.");
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchExpenses();
-  }, [token]);
+  }, [token, refreshKey]);
 
   return (
-    <div>
-      <h2>Your Expenses</h2>
-      {error && <p className="error">{error}</p>}
-      {expenses.length === 0 ? (
-        <p>No expenses yet.</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Amount</th>
-              <th>Category</th>
-              <th>Date</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            {expenses.map((exp) => (
-              <tr key={exp._id}>
-                <td>{exp.amount} {exp.currency}</td>
-                <td>{exp.category}</td>
-                <td>{new Date(exp.date).toLocaleString()}</td>
-                <td>{exp.description}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
+    <Card>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Your Expenses
+        </Typography>
+        {isLoading && (
+          <Box display="flex" justifyContent="center" my={2}>
+            <CircularProgress />
+          </Box>
+        )}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {!isLoading && expenses.length === 0 ? (
+          <Typography color="text.secondary" align="center">
+            No expenses yet.
+          </Typography>
+        ) : (
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Amount</TableCell>
+                <TableCell>Category</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Description</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {expenses.map((exp) => (
+                <TableRow key={exp._id}>
+                  <TableCell>{exp.amount} {exp.currency}</TableCell>
+                  <TableCell>{exp.category}</TableCell>
+                  <TableCell>{new Date(exp.date).toLocaleString()}</TableCell>
+                  <TableCell>{exp.description || "-"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

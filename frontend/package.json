@@ -10,7 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.0.2",
+    "@mui/material": "^7.0.2",
+    "@mui/x-date-pickers": "^8.0.0",
     "axios": "^1.8.4",
+    "luxon": "^3.6.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
