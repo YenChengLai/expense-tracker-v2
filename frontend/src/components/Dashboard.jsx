@@ -17,20 +17,20 @@ function Dashboard({ token, refreshKey }) {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const fetchExpenses = async () => {
+    const fetchRecords = async () => {
       setIsLoading(true);
       setError("");
       try {
         const response = await axios.get("http://127.0.0.1:8001/expense", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const expenses = response.data;
-        const total = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
-        const byCategory = expenses.reduce((acc, exp) => {
-          const cat = exp.category;
+        const records = response.data;
+        const total = records.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+        const byCategory = records.reduce((acc, rec) => {
+          const cat = rec.category;
           if (!acc[cat]) acc[cat] = { count: 0, total: 0 };
           acc[cat].count += 1;
-          acc[cat].total += parseFloat(exp.amount);
+          acc[cat].total += parseFloat(rec.amount);
           return acc;
         }, {});
         setStats({ total, byCategory });
@@ -40,7 +40,7 @@ function Dashboard({ token, refreshKey }) {
         setIsLoading(false);
       }
     };
-    fetchExpenses();
+    fetchRecords();
   }, [token, refreshKey]);
 
   const chartData = Object.entries(stats.byCategory).map(([category, data]) => ({
@@ -65,17 +65,17 @@ function Dashboard({ token, refreshKey }) {
           <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle1" gutterBottom>
-                Total Expenses: ${stats.total.toFixed(2)}
+                Total Records: ${stats.total.toFixed(2)}
               </Typography>
               <Typography variant="subtitle1" gutterBottom>
-                Expenses by Category:
+                Records by Category:
               </Typography>
               {Object.entries(stats.byCategory).length === 0 ? (
-                <Typography color="text.secondary">No expenses yet.</Typography>
+                <Typography color="text.secondary">No records yet.</Typography>
               ) : (
                 Object.entries(stats.byCategory).map(([category, data]) => (
                   <Typography key={category} variant="body2">
-                    {category}: {data.count} expense(s), ${data.total.toFixed(2)}
+                    {category}: {data.count} record(s), ${data.total.toFixed(2)}
                   </Typography>
                 ))
               )}

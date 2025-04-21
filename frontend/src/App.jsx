@@ -3,12 +3,16 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
+import AppBar from "@mui/material/AppBar";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import LogoutIcon from "@mui/icons-material/ExitToApp";
 import Sidebar from "./components/Sidebar";
 import LoginForm from "./components/LoginForm";
-import ExpenseForm from "./components/ExpenseForm";
-import ExpenseList from "./components/ExpenseList";
+import TransactionForm from "./components/TransactionForm";
+import TransactionList from "./components/TransactionList";
 import Dashboard from "./components/Dashboard";
 
 const theme = createTheme({
@@ -21,16 +25,21 @@ const theme = createTheme({
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [refreshExpenses, setRefreshExpenses] = useState(0);
+  const [refreshRecords, setRefreshRecords] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: "" });
 
-  const handleExpenseAdded = () => {
-    setRefreshExpenses((prev) => prev + 1);
-    setSnackbar({ open: true, message: "Expense added successfully!" });
+  const handleRecordAdded = () => {
+    setRefreshRecords((prev) => prev + 1);
+    setSnackbar({ open: true, message: "Record added successfully!" });
   };
 
   const handleCloseSnackbar = () => {
     setSnackbar({ open: false, message: "" });
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setToken("");
   };
 
   return (
@@ -42,29 +51,45 @@ function App() {
             <Sidebar />
             <Box
               component="main"
-              sx={{ flexGrow: 1, p: 3, width: { sm: `calc(100% - 240px)` } }}
+              sx={{ flexGrow: 1, width: { sm: `calc(100% - 240px)` } }}
             >
-              <Toolbar />
-              <Routes>
-                <Route
-                  path="/"
-                  element={<Dashboard token={token} refreshKey={refreshExpenses} />}
-                />
-                <Route
-                  path="/add"
-                  element={
-                    <ExpenseForm
-                      token={token}
-                      onExpenseAdded={handleExpenseAdded}
-                      setToken={setToken}
-                    />
-                  }
-                />
-                <Route
-                  path="/list"
-                  element={<ExpenseList token={token} refreshKey={refreshExpenses} />}
-                />
-              </Routes>
+              <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+                <Toolbar>
+                  <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                    Expense Tracker
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<LogoutIcon />}
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </Toolbar>
+              </AppBar>
+              <Toolbar /> {/* Offset content below AppBar */}
+              <Box sx={{ p: 3 }}>
+                <Routes>
+                  <Route
+                    path="/"
+                    element={<Dashboard token={token} refreshKey={refreshRecords} />}
+                  />
+                  <Route
+                    path="/add"
+                    element={
+                      <TransactionForm
+                        token={token}
+                        onRecordAdded={handleRecordAdded}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/list"
+                    element={<TransactionList token={token} refreshKey={refreshRecords} />}
+                  />
+                </Routes>
+              </Box>
             </Box>
           </Box>
         ) : (

@@ -8,10 +8,12 @@ import {
   ListItemText,
   Toolbar,
   Divider,
+  Typography,
 } from "@mui/material";
-import DashboardIcon from "@mui/icons-material/Dashboard";
+import InsightsIcon from "@mui/icons-material/Insights";
 import AddIcon from "@mui/icons-material/Add";
 import ListIcon from "@mui/icons-material/List";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 
 const drawerWidth = 240;
 
@@ -19,9 +21,9 @@ function Sidebar() {
   const location = useLocation();
 
   const menuItems = [
-    { text: "Dashboard", path: "/", icon: <DashboardIcon /> },
-    { text: "Add Expense", path: "/add", icon: <AddIcon /> },
-    { text: "Expense List", path: "/list", icon: <ListIcon /> },
+    { text: "Dashboard", path: "/", icon: <InsightsIcon /> },
+    { text: "Add a Record", path: "/add", icon: <AddIcon /> },
+    { text: "Record List", path: "/list", icon: <ListIcon /> },
   ];
 
   return (
@@ -33,7 +35,12 @@ function Sidebar() {
         [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box" },
       }}
     >
-      <Toolbar />
+      <Toolbar>
+        <AccountBalanceWalletIcon sx={{ mr: 1 }} />
+        <Typography variant="h6" noWrap>
+          Expense Tracker
+        </Typography>
+      </Toolbar>
       <Divider />
       <List>
         {menuItems.map((item) => (

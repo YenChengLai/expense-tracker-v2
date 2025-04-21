@@ -2,13 +2,13 @@ import time
 from typing import Annotated
 
 from bson import ObjectId
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pymongo.database import Database
 
 from .auth import TokenData, get_current_user
 from .db import get_db
-from .models import ExpenseCreate, ExpenseResponse
+from .models import CategoryCreate, ExpenseCreate, ExpenseResponse
 
 
 app = FastAPI()
@@ -47,9 +47,22 @@ async def get_expenses(
     return [ExpenseResponse(**{**exp, "_id": str(exp["_id"]), "userId": str(exp["userId"])}) for exp in expenses]
 
 
+@app.post("/categories", response_model=CategoryCreate)
+async def create_category(
+    category: CategoryCreate,
+    db: Annotated[Database, Depends(get_db)],
+    current_user: Annotated[TokenData, Depends(get_current_user)],
+) -> list[str]:
+    existing = db.category.find_one({"name": category.name, "userId": ObjectId(current_user.userId)})
+    if existing:
+        raise HTTPException(status_code=400, detail="Category already exists")
+    db.category.insert_one({"name": category.name, "userId": ObjectId(current_user.userId)})
+    return []
+
+
 @app.get("/categories")
 async def list_categories(db: Annotated[Database, Depends(get_db)]) -> list[str]:
-    return db.expenses.distinct("category")
+    return db.category.find().distinct("name")
 
 
 @app.get("/health")

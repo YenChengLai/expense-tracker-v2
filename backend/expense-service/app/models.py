@@ -10,6 +10,10 @@ class ExpenseCreate(BaseModel):
     currency: str  # e.g., "USD", "EUR"
 
 
+class CategoryCreate(BaseModel):
+    name: str
+
+
 class ExpenseResponse(BaseModel):
     _id: str
     userId: str
