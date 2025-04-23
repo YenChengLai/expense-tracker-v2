@@ -9,6 +9,8 @@ import Button from "@mui/material/Button";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import LogoutIcon from "@mui/icons-material/ExitToApp";
+import Brightness4Icon from "@mui/icons-material/Brightness4"; // Added for dark mode toggle
+import Brightness7Icon from "@mui/icons-material/Brightness7"; // Added for light mode toggle
 import Sidebar from "./components/Sidebar";
 import Login from "./components/Login";
 import TransactionForm from "./components/TransactionForm";
@@ -17,11 +19,22 @@ import Dashboard from "./components/Dashboard";
 import Settings from "./components/Settings";
 import axios from "axios";
 
-const theme = createTheme({
+// Define light and dark themes
+const lightTheme = createTheme({
   palette: {
+    mode: "light",
     primary: { main: "#1976d2" },
     secondary: { main: "#d32f2f" },
     background: { default: "#f4f7fa" },
+  },
+});
+
+const darkTheme = createTheme({
+  palette: {
+    mode: "dark",
+    primary: { main: "#90caf9" },
+    secondary: { main: "#f48fb1" },
+    background: { default: "#121212" },
   },
 });
 
@@ -29,6 +42,8 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [refreshRecords, setRefreshRecords] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [mode, setMode] = useState("light"); // Added for theme toggle
+  const theme = mode === "light" ? lightTheme : darkTheme; // Dynamic theme
 
   const handleRecordAdded = async (payload) => {
     console.log("handleRecordAdded called with payload:", payload);
@@ -99,6 +114,15 @@ function App() {
                   <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
                     Expense Tracker
                   </Typography>
+                  {/* Added theme toggle button */}
+                  <Button
+                    color="inherit"
+                    onClick={() => setMode(mode === "light" ? "dark" : "light")}
+                    startIcon={mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
+                    sx={{ mr: 1 }}
+                  >
+                    {mode === "light" ? "Dark" : "Light"} Mode
+                  </Button>
                   <Button
                     variant="outlined"
                     color="inherit"

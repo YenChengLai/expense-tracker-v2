@@ -1,7 +1,6 @@
 import time
-from typing import Annotated, List
+from typing import Annotated
 
-from bson import ObjectId
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -65,10 +64,32 @@ async def create_category(
 async def list_categories(
     db: Annotated[AsyncIOMotorDatabase, Depends(get_db)],
     current_user: Annotated[TokenData, Depends(get_current_user)],
-) -> List[str]:
-    user_categories = await db.category.distinct("name", {"userId": current_user.userId})
-    universal_categories = await db.category.distinct("name", {"userId": None})
-    return list(set(user_categories + universal_categories))
+    show_universal: bool = False,
+) -> list[dict]:
+    try:
+        # Fetch user-specific categories
+        user_query = {"userId": current_user.userId}
+        user_categories = await db.category.find(user_query).to_list(None)
+
+        # Fetch universal categories if requested
+        universal_categories = []
+        if show_universal:
+            universal_query = {"userId": None}
+            universal_categories = await db.category.find(universal_query).to_list(None)
+
+        # Combine and format categories
+        all_categories = user_categories + universal_categories
+        return [{"name": cat["name"], "userId": cat.get("userId")} for cat in all_categories]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch categories: {e!s}") from e
+
+
+@app.get("/user")
+async def get_user(current_user: Annotated[TokenData, Depends(get_current_user)]) -> dict[str, str]:
+    try:
+        return {"userId": str(current_user.userId)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user: {e!s}") from e
 
 
 @app.put("/categories/{name}")

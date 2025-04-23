@@ -8,6 +8,7 @@ import {
   TextField,
   Button,
   Typography,
+  CircularProgress,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -45,16 +46,18 @@ export default function Login({ setToken, theme }) {
         sx={{
           justifyContent: "center",
           minHeight: "100vh",
-          backgroundImage:
-            "radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))",
+          backgroundImage: theme.palette.mode === "light"
+            ? "radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))"
+            : "radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))",
           backgroundRepeat: "no-repeat",
           "&::before": {
             content: '""',
             position: "absolute",
             zIndex: -1,
             inset: 0,
-            backgroundImage:
-              "radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))",
+            backgroundImage: theme.palette.mode === "light"
+              ? "radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))"
+              : "radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))",
           },
         }}
       >
@@ -91,6 +94,12 @@ export default function Login({ setToken, theme }) {
               Sign In
             </Typography>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {/* Added loading indicator */}
+            {isLoading && (
+              <Box display="flex" justifyContent="center" mb={2}>
+                <CircularProgress />
+              </Box>
+            )}
             <Box component="form" onSubmit={handleSubmit} noValidate>
               <TextField
                 label="Email"
@@ -114,14 +123,35 @@ export default function Login({ setToken, theme }) {
                 required
                 disabled={isLoading}
               />
+              {/* Added Forgot Password link */}
+              <Box sx={{ textAlign: "right", mb: 1 }}>
+                <Button
+                  variant="text"
+                  size="small"
+                  href="/forgot-password" // Assumes backend endpoint
+                  disabled={isLoading}
+                >
+                  Forgot Password?
+                </Button>
+              </Box>
               <Button
                 type="submit"
                 variant="contained"
                 fullWidth
                 disabled={isLoading}
-                sx={{ mt: 2 }}
+                sx={{ mt: 1 }}
               >
                 {isLoading ? "Signing In..." : "Sign In"}
+              </Button>
+              {/* Added Sign Up link */}
+              <Button
+                variant="text"
+                fullWidth
+                href="/register" // Assumes backend endpoint
+                disabled={isLoading}
+                sx={{ mt: 1 }}
+              >
+                Don’t have an account? Sign Up
               </Button>
             </Box>
           </Box>

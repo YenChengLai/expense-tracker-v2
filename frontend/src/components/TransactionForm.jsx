@@ -13,9 +13,10 @@ import {
   Select,
   MenuItem,
   Collapse,
+  CircularProgress,
 } from "@mui/material";
 import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { LocalizationProvider, MobileDatePicker } from "@mui/x-date-pickers";
 import { DateTime } from "luxon";
 
 function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = null }) {
@@ -30,6 +31,7 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
     }
   );
   const [categories, setCategories] = useState([]);
+  const [recentCategories, setRecentCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
   const [error, setError] = useState("");
@@ -54,13 +56,15 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
       try {
         const response = await axios.get("http://127.0.0.1:8001/categories", {
           headers: { Authorization: `Bearer ${token}` },
+          params: { show_universal: true }, // Include universal categories
         });
-        setCategories(response.data || []);
+        setCategories(response.data.map(cat => cat.name) || []);
       } catch (err) {
         setCategoryError("Failed to load categories. Please try again.");
       }
     };
     fetchCategories();
+    setRecentCategories(JSON.parse(localStorage.getItem("recentCategories") || "[]"));
   }, [token]);
 
   const handleCategoryChange = (event) => {
@@ -124,9 +128,15 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
         type: formData.type,
         currency: formData.currency,
       };
-      await onRecordAdded(payload);
+      const response = await onRecordAdded(payload);
       if (!initialData) {
         setFormData({ amount: "", category: "", date: null, description: "", type: "expense", currency: "USD" });
+        const updatedRecent = [
+          formData.category,
+          ...recentCategories.filter((cat) => cat !== formData.category),
+        ].slice(0, 5);
+        localStorage.setItem("recentCategories", JSON.stringify(updatedRecent));
+        setRecentCategories(updatedRecent);
       }
     } catch (err) {
       setError(err.message || "Failed to add or update record. Please try again.");
@@ -145,6 +155,11 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
           <Alert severity="error" sx={{ mb: 2 }}>
             {error || categoryError}
           </Alert>
+        )}
+        {isLoading && (
+          <Box display="flex" justifyContent="center" mb={2}>
+            <CircularProgress />
+          </Box>
         )}
         <Box component="form" onSubmit={handleSubmit} noValidate>
           <TextField
@@ -166,6 +181,17 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
               onChange={handleCategoryChange}
               required
             >
+              {recentCategories.length > 0 && (
+                <>
+                  <MenuItem disabled>Recent</MenuItem>
+                  {recentCategories.map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat}
+                    </MenuItem>
+                  ))}
+                </>
+              )}
+              <MenuItem disabled>All</MenuItem>
               {categories.map((cat) => (
                 <MenuItem key={cat} value={cat}>
                   {cat}
@@ -196,7 +222,7 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
             </Box>
           </Collapse>
           <LocalizationProvider dateAdapter={AdapterLuxon}>
-            <DatePicker
+            <MobileDatePicker
               label="Date"
               value={formData.date}
               onChange={(newValue) => setFormData({ ...formData, date: newValue })}
