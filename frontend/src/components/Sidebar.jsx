@@ -1,60 +1,56 @@
-import { Link, useLocation } from "react-router-dom";
-import {
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Toolbar,
-  Divider,
-  Typography,
-} from "@mui/material";
+import { Drawer, List, ListItem, ListItemIcon, ListItemText, Toolbar, Typography } from "@mui/material";
+import { Link } from "react-router-dom";
 import InsightsIcon from "@mui/icons-material/Insights";
 import AddIcon from "@mui/icons-material/Add";
 import ListIcon from "@mui/icons-material/List";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 const drawerWidth = 240;
 
 function Sidebar() {
-  const location = useLocation();
-
-  const menuItems = [
-    { text: "Dashboard", path: "/", icon: <InsightsIcon /> },
-    { text: "Add a Record", path: "/add", icon: <AddIcon /> },
-    { text: "Record List", path: "/list", icon: <ListIcon /> },
-  ];
-
   return (
     <Drawer
-      variant="permanent"
       sx={{
         width: drawerWidth,
         flexShrink: 0,
-        [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: "border-box" },
+        "& .MuiDrawer-paper": {
+          width: drawerWidth,
+          boxSizing: "border-box",
+        },
       }}
+      variant="permanent"
+      anchor="left"
     >
       <Toolbar>
-        <AccountBalanceWalletIcon sx={{ mr: 1 }} />
         <Typography variant="h6" noWrap>
           Expense Tracker
         </Typography>
       </Toolbar>
-      <Divider />
       <List>
-        {menuItems.map((item) => (
-          <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              component={Link}
-              to={item.path}
-              selected={location.pathname === item.path}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        <ListItem button component={Link} to="/">
+          <ListItemIcon>
+            <InsightsIcon />
+          </ListItemIcon>
+          <ListItemText primary="Dashboard" />
+        </ListItem>
+        <ListItem button component={Link} to="/add">
+          <ListItemIcon>
+            <AddIcon />
+          </ListItemIcon>
+          <ListItemText primary="Add a Record" />
+        </ListItem>
+        <ListItem button component={Link} to="/list">
+          <ListItemIcon>
+            <ListIcon />
+          </ListItemIcon>
+          <ListItemText primary="Record List" />
+        </ListItem>
+        <ListItem button component={Link} to="/settings">
+          <ListItemIcon>
+            <SettingsIcon />
+          </ListItemIcon>
+          <ListItemText primary="Settings" />
+        </ListItem>
       </List>
     </Drawer>
   );

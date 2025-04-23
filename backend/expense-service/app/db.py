@@ -1,7 +1,6 @@
-from pymongo import MongoClient  # Importing MongoClient from pymongo
-from pymongo.database import Database  # Importing Database from pymongo
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 
 
-def get_db() -> Database:
-    client: MongoClient = MongoClient("mongodb://localhost:27017/")
+def get_db() -> AsyncIOMotorDatabase:
+    client: AsyncIOMotorClient = AsyncIOMotorClient("mongodb://localhost:27017/")
     return client["expense_tracker"]

@@ -16,16 +16,19 @@ import {
 } from "@mui/material";
 import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { DateTime } from "luxon";
 
-function TransactionForm({ token, onRecordAdded }) {
-  const [formData, setFormData] = useState({
-    amount: "",
-    category: "",
-    date: null,
-    description: "",
-    type: "expense",
-    currency: "USD",
-  });
+function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = null }) {
+  const [formData, setFormData] = useState(
+    initialData || {
+      amount: "",
+      category: "",
+      date: null,
+      description: "",
+      type: "expense",
+      currency: "USD",
+    }
+  );
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
   const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
@@ -33,29 +36,39 @@ function TransactionForm({ token, onRecordAdded }) {
   const [isLoading, setIsLoading] = useState(false);
   const [categoryError, setCategoryError] = useState("");
 
-  // Fetch categories on mount
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        amount: initialData.amount?.toString() || "",
+        category: initialData.category || "",
+        date: initialData.date ? DateTime.fromISO(initialData.date) : null,
+        description: initialData.description || "",
+        type: initialData.type || "expense",
+        currency: initialData.currency || "USD",
+      });
+    }
+  }, [initialData]);
+
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const response = await axios.get("http://127.0.0.1:8001/categories", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setCategories(response.data);
+        setCategories(response.data || []);
       } catch (err) {
-        setCategoryError("Failed to load categories.");
+        setCategoryError("Failed to load categories. Please try again.");
       }
     };
     fetchCategories();
   }, [token]);
 
-  // Handle category selection
   const handleCategoryChange = (event) => {
     const value = event.target.value;
     setShowNewCategoryInput(value === "__add_new");
     setFormData({ ...formData, category: value === "__add_new" ? "" : value });
   };
 
-  // Handle new category submission
   const handleAddCategory = async () => {
     if (!newCategory.trim()) {
       setCategoryError("Category name cannot be empty.");
@@ -64,44 +77,59 @@ function TransactionForm({ token, onRecordAdded }) {
     setIsLoading(true);
     setCategoryError("");
     try {
-      await axios.post(
+      const response = await axios.post(
         "http://127.0.0.1:8001/categories",
-        { category: newCategory.trim() },
+        { name: newCategory.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const updatedCategories = [...categories, newCategory.trim()];
-      setCategories(updatedCategories);
-      setFormData({ ...formData, category: newCategory.trim() });
+      const newCat = response.data.name;
+      setCategories([...categories, newCat]);
+      setFormData({ ...formData, category: newCat });
       setNewCategory("");
       setShowNewCategoryInput(false);
+      onCategoryAdded(newCat);
     } catch (err) {
-      setCategoryError(err.response?.data?.detail || "Failed to add category.");
+      setCategoryError(
+        err.response?.data?.detail === "Category already exists for this user"
+          ? `Category '${newCategory}' already exists. Please choose it from the list.`
+          : "Failed to add category. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.category || formData.category === "__add_new") {
       setError("Please select or add a valid category.");
       return;
     }
+    if (!formData.amount || isNaN(parseFloat(formData.amount))) {
+      setError("Please enter a valid amount.");
+      return;
+    }
+    if (!formData.date) {
+      setError("Please select a date.");
+      return;
+    }
     setIsLoading(true);
     setError("");
     try {
       const payload = {
-        ...formData,
-        date: formData.date ? formData.date.toISODate() : null, // Send YYYY-MM-DD
+        amount: parseFloat(formData.amount),
+        category: formData.category,
+        date: formData.date.toISODate(),
+        description: formData.description || null,
+        type: formData.type,
+        currency: formData.currency,
       };
-      await axios.post("http://127.0.0.1:8001/expense", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setFormData({ amount: "", category: "", date: null, description: "", type: "expense", currency: "USD" });
-      onRecordAdded();
+      await onRecordAdded(payload);
+      if (!initialData) {
+        setFormData({ amount: "", category: "", date: null, description: "", type: "expense", currency: "USD" });
+      }
     } catch (err) {
-      setError(err.response?.data?.detail || "Failed to add record.");
+      setError(err.message || "Failed to add or update record. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +139,7 @@ function TransactionForm({ token, onRecordAdded }) {
     <Card sx={{ mb: 3 }}>
       <CardContent>
         <Typography variant="h6" gutterBottom>
-          Add a Record
+          {initialData ? "Edit Record" : "Add a Record"}
         </Typography>
         {(error || categoryError) && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -147,7 +175,7 @@ function TransactionForm({ token, onRecordAdded }) {
             </Select>
           </FormControl>
           <Collapse in={showNewCategoryInput}>
-            <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+            <Box sx={{ display: "flex", gap: 2, mt: 2, flexDirection: { xs: "column", sm: "row" } }}>
               <TextField
                 label="New Category"
                 type="text"
@@ -204,7 +232,7 @@ function TransactionForm({ token, onRecordAdded }) {
             disabled={isLoading}
             sx={{ mt: 2 }}
           >
-            {isLoading ? "Adding..." : "Add Record"}
+            {isLoading ? "Saving..." : initialData ? "Update Record" : "Add Record"}
           </Button>
         </Box>
       </CardContent>

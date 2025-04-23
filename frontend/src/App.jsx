@@ -10,10 +10,12 @@ import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 import LogoutIcon from "@mui/icons-material/ExitToApp";
 import Sidebar from "./components/Sidebar";
-import LoginForm from "./components/LoginForm";
+import Login from "./components/Login";
 import TransactionForm from "./components/TransactionForm";
 import TransactionList from "./components/TransactionList";
 import Dashboard from "./components/Dashboard";
+import Settings from "./components/Settings";
+import axios from "axios";
 
 const theme = createTheme({
   palette: {
@@ -26,15 +28,54 @@ const theme = createTheme({
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [refreshRecords, setRefreshRecords] = useState(0);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "" });
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  const handleRecordAdded = () => {
+  const handleRecordAdded = async (payload) => {
+    console.log("handleRecordAdded called with payload:", payload);
+    console.log("Token:", token);
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8001/expense",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      console.log("POST /expense response:", response.data);
+      setRefreshRecords((prev) => prev + 1);
+      setSnackbar({ open: true, message: "Record added successfully!", severity: "success" });
+      return response.data;
+    } catch (err) {
+      console.error("Error in POST /expense:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        config: err.config,
+      });
+      throw new Error(err.response?.data?.detail || "Failed to add record. Please check your connection or login again.");
+    }
+  };
+
+  const handleCategoryAdded = (category) => {
     setRefreshRecords((prev) => prev + 1);
-    setSnackbar({ open: true, message: "Record added successfully!" });
+    setSnackbar({ open: true, message: `Category '${category}' added successfully!`, severity: "success" });
+  };
+
+  const handleRecordUpdated = (message) => {
+    setRefreshRecords((prev) => prev + 1);
+    setSnackbar({ open: true, message, severity: "success" });
+  };
+
+  const handleCategoryUpdated = (message) => {
+    setRefreshRecords((prev) => prev + 1);
+    setSnackbar({ open: true, message, severity: "success" });
   };
 
   const handleCloseSnackbar = () => {
-    setSnackbar({ open: false, message: "" });
+    setSnackbar({ open: false, message: "", severity: "success" });
   };
 
   const handleLogout = () => {
@@ -68,7 +109,7 @@ function App() {
                   </Button>
                 </Toolbar>
               </AppBar>
-              <Toolbar /> {/* Offset content below AppBar */}
+              <Toolbar />
               <Box sx={{ p: 3 }}>
                 <Routes>
                   <Route
@@ -81,19 +122,35 @@ function App() {
                       <TransactionForm
                         token={token}
                         onRecordAdded={handleRecordAdded}
+                        onCategoryAdded={handleCategoryAdded}
                       />
                     }
                   />
                   <Route
                     path="/list"
-                    element={<TransactionList token={token} refreshKey={refreshRecords} />}
+                    element={
+                      <TransactionList
+                        token={token}
+                        refreshKey={refreshRecords}
+                        onRecordUpdated={handleRecordUpdated}
+                      />
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <Settings
+                        token={token}
+                        onCategoryUpdated={handleCategoryUpdated}
+                      />
+                    }
                   />
                 </Routes>
               </Box>
             </Box>
           </Box>
         ) : (
-          <LoginForm setToken={setToken} />
+          <Login setToken={setToken} theme={theme} />
         )}
         <Snackbar
           open={snackbar.open}
@@ -101,7 +158,7 @@ function App() {
           onClose={handleCloseSnackbar}
           anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: "100%" }}>
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
             {snackbar.message}
           </Alert>
         </Snackbar>

@@ -1,3 +1,6 @@
+from typing import ClassVar
+
+from bson import ObjectId
 from pydantic import BaseModel
 
 
@@ -10,21 +13,21 @@ class ExpenseCreate(BaseModel):
     currency: str  # e.g., "USD", "EUR"
 
 
-class CategoryCreate(BaseModel):
+class Category(BaseModel):
     name: str
 
 
 class ExpenseResponse(BaseModel):
     _id: str
     userId: str
-    groupId: str | None = None
+    groupId: str | None
     amount: float
     category: str
     date: str
-    description: str | None = None
+    description: str | None
     type: str
     currency: str
     epoch: int
 
     class Config:
-        from_attributes = True  # Allows conversion from MongoDB docs
+        json_encoders: ClassVar[dict] = {ObjectId: str}

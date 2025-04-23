@@ -19,9 +19,18 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
 } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import TransactionForm from "./TransactionForm";
 
-function TransactionList({ token, refreshKey }) {
+function TransactionList({ token, refreshKey, onRecordUpdated }) {
   const [records, setRecords] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -31,6 +40,7 @@ function TransactionList({ token, refreshKey }) {
   const [isLoading, setIsLoading] = useState(false);
   const [sortField, setSortField] = useState("date");
   const [sortDirection, setSortDirection] = useState("desc");
+  const [editRecord, setEditRecord] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,10 +56,10 @@ function TransactionList({ token, refreshKey }) {
           }),
         ]);
         setRecords(recordResponse.data);
-        setCategories(categoryResponse.data);
+        setCategories(categoryResponse.data || []);
         applyFilterAndSort(recordResponse.data, selectedCategories, selectedType, sortField, sortDirection);
       } catch (err) {
-        setError(err.response?.data?.detail || "Failed to load data.");
+        setError(err.response?.data?.detail || "Failed to load data. Please check your connection or login again.");
       } finally {
         setIsLoading(false);
       }
@@ -95,6 +105,60 @@ function TransactionList({ token, refreshKey }) {
     applyFilterAndSort(records, selectedCategories, selectedType, field, newDirection);
   };
 
+  const handleRecordAction = async (payload, isEdit = false, recordId = null) => {
+    setIsLoading(true);
+    setError("");
+    try {
+      let response;
+      if (isEdit && recordId) {
+        response = await axios.put(
+          `http://127.0.0.1:8001/expense/${recordId}`,
+          payload,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        response = await axios.post(
+          "http://127.0.0.1:8001/expense",
+          payload,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+      const updatedRecords = isEdit
+        ? records.map((rec) => (rec._id === recordId ? response.data : rec))
+        : [...records, response.data];
+      setRecords(updatedRecords);
+      applyFilterAndSort(updatedRecords, selectedCategories, selectedType, sortField, sortDirection);
+      if (isEdit) {
+        setEditRecord(null);
+      }
+      onRecordUpdated(isEdit ? "Record updated successfully!" : "Record added successfully!");
+      return response.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.detail || `Failed to ${isEdit ? "update" : "add"} record`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteRecord = async (id) => {
+    setIsLoading(true);
+    setError("");
+    try {
+      await axios.delete(
+        `http://127.0.0.1:8001/expense/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const updatedRecords = records.filter((rec) => rec._id !== id);
+      setRecords(updatedRecords);
+      applyFilterAndSort(updatedRecords, selectedCategories, selectedType, sortField, sortDirection);
+      onRecordUpdated("Record deleted successfully!");
+    } catch (err) {
+      setError(err.response?.data?.detail || "Failed to delete record. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardContent>
@@ -105,19 +169,20 @@ function TransactionList({ token, refreshKey }) {
           <Typography variant="subtitle2" gutterBottom>
             Filter by Category
           </Typography>
-          {categories.map((category) => (
-            <FormControlLabel
-              key={category}
-              control={
-                <Checkbox
-                  checked={selectedCategories.includes(category)}
-                  onChange={() => handleCategoryChange(category)}
-                />
-              }
-              label={category}
-            />
-          ))}
-          {categories.length === 0 && (
+          {categories.length > 0 ? (
+            categories.map((category) => (
+              <FormControlLabel
+                key={category}
+                control={
+                  <Checkbox
+                    checked={selectedCategories.includes(category)}
+                    onChange={() => handleCategoryChange(category)}
+                  />
+                }
+                label={category}
+              />
+            ))
+          ) : (
             <Typography color="text.secondary">No categories available.</Typography>
           )}
         </Box>
@@ -168,6 +233,7 @@ function TransactionList({ token, refreshKey }) {
                   </TableSortLabel>
                 </TableCell>
                 <TableCell>Description</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -178,11 +244,37 @@ function TransactionList({ token, refreshKey }) {
                   <TableCell>{rec.type.charAt(0).toUpperCase() + rec.type.slice(1)}</TableCell>
                   <TableCell>{rec.date}</TableCell>
                   <TableCell>{rec.description || "-"}</TableCell>
+                  <TableCell>
+                    <IconButton
+                      onClick={() => setEditRecord(rec)}
+                      disabled={isLoading}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      onClick={() => handleDeleteRecord(rec._id)}
+                      disabled={isLoading}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
+        <Dialog open={editRecord !== null} onClose={() => setEditRecord(null)}>
+          <DialogTitle>Edit Record</DialogTitle>
+          <DialogContent>
+            {editRecord && (
+              <TransactionForm
+                token={token}
+                onRecordAdded={(payload) => handleRecordAction(payload, true, editRecord._id)}
+                initialData={editRecord}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

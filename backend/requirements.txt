@@ -1,6 +1,7 @@
 bcrypt
 fastapi
 httpx
+motor
 pydantic
 pylint
 pymongo
