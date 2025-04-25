@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-
+from pydantic import BaseModel, EmailStr
+from datetime import datetime
 
 BEARER = "bearer"
 
@@ -17,3 +17,13 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     email: str
     userId: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    userId: str
+    resetToken: str
+    expiresAt: datetime

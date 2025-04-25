@@ -3,6 +3,7 @@ fastapi
 httpx
 motor
 pydantic
+pydantic[email]
 pylint
 pymongo
 pytest

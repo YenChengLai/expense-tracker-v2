@@ -13,26 +13,27 @@ import {
 import { ThemeProvider } from "@mui/material/styles";
 import { Link } from "react-router-dom";
 
-export default function Login({ setToken, theme }) {
+export default function ForgotPassword({ theme }) {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!email.trim()) {
+      setError("Please enter your email.");
+      return;
+    }
     setIsLoading(true);
     setError("");
+    setSuccess("");
     try {
-      const response = await axios.post("http://127.0.0.1:8002/login", {
-        email,
-        password,
-      });
-      const token = response.data.access_token;
-      localStorage.setItem("token", token);
-      setToken(token);
+      const response = await axios.post("http://127.0.0.1:8002/forgot-password", { email });
+      setSuccess(response.data.message);
+      setEmail("");
     } catch (err) {
-      setError(err.response?.data?.detail || "Login failed. Check your credentials.");
+      setError(err.response?.data?.detail || "Failed to send reset link. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -74,11 +75,11 @@ export default function Login({ setToken, theme }) {
         >
           <Box sx={{ maxWidth: { xs: "100%", md: "50%" }, p: 2 }}>
             <Typography variant="h4" gutterBottom>
-              Welcome to Expense Tracker
+              Forgot Your Password?
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Manage your expenses and income with ease. Sign in to access your personalized
-              dashboard, track transactions, and organize categories.
+              Enter your email address below, and we’ll send you a link to reset your password.
+              You’ll be back to tracking your expenses in no time!
             </Typography>
           </Box>
           <Box
@@ -92,9 +93,10 @@ export default function Login({ setToken, theme }) {
             }}
           >
             <Typography variant="h5" gutterBottom>
-              Sign In
+              Reset Password
             </Typography>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
             {isLoading && (
               <Box display="flex" justifyContent="center" mb={2}>
                 <CircularProgress />
@@ -112,28 +114,6 @@ export default function Login({ setToken, theme }) {
                 required
                 disabled={isLoading}
               />
-              <TextField
-                label="Password"
-                type="password"
-                fullWidth
-                margin="normal"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-                disabled={isLoading}
-              />
-              <Box sx={{ textAlign: "right", mb: 1 }}>
-                <Button
-                  component={Link}
-                  to="/forgot-password"
-                  variant="text"
-                  size="small"
-                  disabled={isLoading}
-                >
-                  Forgot Password?
-                </Button>
-              </Box>
               <Button
                 type="submit"
                 variant="contained"
@@ -141,8 +121,19 @@ export default function Login({ setToken, theme }) {
                 disabled={isLoading}
                 sx={{ mt: 1 }}
               >
-                {isLoading ? "Signing In..." : "Sign In"}
+                {isLoading ? "Sending..." : "Send Reset Link"}
               </Button>
+              <Box sx={{ textAlign: "center", mt: 2 }}>
+                <Button
+                  component={Link}
+                  to="/login"
+                  variant="text"
+                  size="small"
+                  disabled={isLoading}
+                >
+                  Back to Sign In
+                </Button>
+              </Box>
             </Box>
           </Box>
         </Stack>

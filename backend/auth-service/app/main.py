@@ -1,9 +1,9 @@
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from .auth import authenticate_user, create_access_token, verify_token
+from .auth import authenticate_user, create_access_token, initiate_password_reset, verify_token
 from .db import get_db
-from .models import BEARER, LoginRequest, TokenResponse, UserResponse
+from .models import BEARER, ForgotPasswordRequest, LoginRequest, TokenResponse, UserResponse
 
 
 app = FastAPI()
@@ -28,6 +28,17 @@ async def login(request: LoginRequest, db=Depends(get_db)) -> dict:
 @app.get("/verify-token")
 async def verify_token_endpoint(token: str, db=Depends(get_db)) -> UserResponse:
     return verify_token(token, db)
+
+
+@app.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest, db=Depends(get_db)) -> dict:
+    try:
+        initiate_password_reset(request.email, db)
+        return {"message": "A password reset link has been sent to your email."}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to process request: {e!r}") from e
 
 
 @app.get("/health")
