@@ -18,6 +18,8 @@ import TransactionList from "./components/TransactionList";
 import Dashboard from "./components/Dashboard";
 import Settings from "./components/Settings";
 import ForgotPassword from "./components/ForgotPassword";
+import Signup from "./components/Signup";
+import AdminApproval from "./components/AdminApproval";
 import axios from "axios";
 
 // Define light and dark themes
@@ -170,6 +172,10 @@ function App() {
                     }
                   />
                   <Route
+                    path="/admin/approvals"
+                    element={<AdminApproval token={token} />}
+                  />
+                  <Route
                     path="*"
                     element={<Navigate to="/" />}
                   />
@@ -186,6 +192,10 @@ function App() {
             <Route
               path="/forgot-password"
               element={<ForgotPassword theme={theme} />}
+            />
+            <Route
+              path="/signup"
+              element={<Signup theme={theme} />}
             />
             <Route
               path="*"

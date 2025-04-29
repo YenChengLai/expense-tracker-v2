@@ -6,11 +6,14 @@ from fastapi import HTTPException
 from jose import JWTError, jwt
 from pymongo.database import Database
 
-from .models import UserResponse
+from .models import PendingUser, UserResponse
 
 
 SECRET_KEY = "your-secret-key"  # Shared with expense-service for now
 ALGORITHM = "HS256"
+
+# Hardcoded admin email for simplicity (replace with proper auth in production)
+ADMIN_EMAIL = "admin@example.com"
 
 
 # Function to verify password by comparing the hashed password with the plain password
@@ -67,3 +70,54 @@ def initiate_password_reset(email: str, db: Database) -> str:
     reset_link = f"http://localhost:5173/reset-password?token={reset_token}"
     print(f"Password reset link (simulated): {reset_link}")
     return reset_link
+
+
+async def create_pending_user(email: str, password: str, db: Database) -> PendingUser:
+    # Check if email already exists in pending_users or user collections
+    existing_pending = db.pending_users.find_one({"email": email})
+    existing_user = db.user.find_one({"email": email})
+    if existing_pending or existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered or pending approval")
+
+    # Hash the password
+    hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+    # Create pending user
+    user_id = str(uuid.uuid4())
+    pending_user = {
+        "email": email,
+        "hashedPassword": hashed_password,
+        "userId": user_id,
+        "createdAt": datetime.utcnow(),
+    }
+    db.pending_users.insert_one(pending_user)
+
+    return PendingUser(**pending_user)
+
+
+async def get_pending_users(db: Database) -> list[PendingUser]:
+    pending_users = db.pending_users.find().to_list(None)
+    return [PendingUser(**user) for user in pending_users]
+
+
+async def approve_user(user_id: str, approve: bool, db: Database) -> None:
+    # Find the pending user
+    pending_user = db.pending_users.find_one({"userId": user_id})
+    if not pending_user:
+        raise HTTPException(status_code=404, detail="Pending user not found")
+
+    # Delete from pending_users
+    db.pending_users.delete_one({"userId": user_id})
+
+    # If approved, add to user collection
+    if approve:
+        user = {
+            "email": pending_user["email"],
+            "hashedPassword": pending_user["hashedPassword"],
+            "userId": pending_user["userId"],
+            "status": "active",
+        }
+        db.user.insert_one(user)
+        print(f"User approved: {pending_user['email']}")
+    else:
+        print(f"User rejected: {pending_user['email']}")
