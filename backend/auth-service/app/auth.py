@@ -74,7 +74,7 @@ def initiate_password_reset(email: str, db: Database) -> str:
 
 async def create_pending_user(email: str, password: str, db: Database) -> PendingUser:
     # Check if email already exists in pending_users or user collections
-    existing_pending = db.pending_users.find_one({"email": email})
+    existing_pending = db.user.find_one({"email": email})
     existing_user = db.user.find_one({"email": email})
     if existing_pending or existing_user:
         raise HTTPException(status_code=400, detail="Email already registered or pending approval")
@@ -83,20 +83,22 @@ async def create_pending_user(email: str, password: str, db: Database) -> Pendin
     hashed_password = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
     # Create pending user
-    user_id = str(uuid.uuid4())
     pending_user = {
         "email": email,
         "hashedPassword": hashed_password,
-        "userId": user_id,
         "createdAt": datetime.utcnow(),
+        "deletedAt": None,
+        "groupId": None,
+        "verified": False,
     }
-    db.pending_users.insert_one(pending_user)
+    db.user.insert_one(pending_user)
 
     return PendingUser(**pending_user)
 
 
 async def get_pending_users(db: Database) -> list[PendingUser]:
-    pending_users = db.pending_users.find().to_list(None)
+    pending_users = db.user.find({"verified": False}).to_list()
+    print(f"[Pending Users] {pending_users}")
     return [PendingUser(**user) for user in pending_users]
 
 

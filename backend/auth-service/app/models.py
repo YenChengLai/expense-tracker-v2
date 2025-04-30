@@ -37,7 +37,7 @@ class SignupRequest(BaseModel):
 class PendingUser(BaseModel):
     email: str
     hashedPassword: str
-    userId: str
+    _id: str
     createdAt: datetime
 
 

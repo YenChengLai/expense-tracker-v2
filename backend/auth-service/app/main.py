@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .auth import (
@@ -38,11 +38,19 @@ app.add_middleware(
 )
 
 
-def require_admin(token: str, db=Depends(get_db)) -> UserResponse:
-    user = verify_token(token, db)
-    if user.email != ADMIN_EMAIL:
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return user
+def require_admin(authorization: Annotated[str | None, Header()] = None, db=Depends(get_db)) -> UserResponse:
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authentication scheme")
+        user = verify_token(token, db)
+        if user.email != ADMIN_EMAIL:
+            raise HTTPException(status_code=403, detail="Admin access required")
+        return user
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail="Invalid credentials") from exc
 
 
 @app.post("/login", response_model=TokenResponse)

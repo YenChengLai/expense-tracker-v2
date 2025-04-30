@@ -4,6 +4,7 @@ import InsightsIcon from "@mui/icons-material/Insights";
 import AddIcon from "@mui/icons-material/Add";
 import ListIcon from "@mui/icons-material/List";
 import SettingsIcon from "@mui/icons-material/Settings";
+import PeopleIcon from "@mui/icons-material/People";
 
 const drawerWidth = 240;
 
@@ -50,6 +51,12 @@ function Sidebar() {
             <SettingsIcon />
           </ListItemIcon>
           <ListItemText primary="Settings" />
+        </ListItem>
+        <ListItem button component={Link} to="/admin/approvals">
+          <ListItemIcon>
+            <PeopleIcon />
+          </ListItemIcon>
+          <ListItemText primary="User Approvals" />
         </ListItem>
       </List>
     </Drawer>

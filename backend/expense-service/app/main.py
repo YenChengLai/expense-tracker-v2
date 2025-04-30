@@ -70,16 +70,14 @@ async def list_categories(
         # Fetch user-specific categories
         user_query = {"userId": current_user.userId}
         user_categories = await db.category.find(user_query).to_list(None)
-
         # Fetch universal categories if requested
         universal_categories = []
         if show_universal:
-            universal_query = {"userId": None}
+            universal_query = {"userId": {"$exists": False}}
             universal_categories = await db.category.find(universal_query).to_list(None)
-
         # Combine and format categories
         all_categories = user_categories + universal_categories
-        return [{"name": cat["name"], "userId": cat.get("userId")} for cat in all_categories]
+        return [{"name": cat["name"], "userId": str(cat.get("userId")) or None} for cat in all_categories]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch categories: {e!s}") from e
 
