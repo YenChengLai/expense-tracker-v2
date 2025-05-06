@@ -83,7 +83,7 @@ function Settings({ token, onCategoryUpdated }) {
         { name: newCategory.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setCategories([...categories, { name: response.data.name, userId: response.data.userId }]);
+      setCategories([...categories, response.data]);
       setNewCategory("");
       onCategoryUpdated(`Category '${response.data.name}' added successfully!`);
     } catch (err) {
@@ -109,7 +109,7 @@ function Settings({ token, onCategoryUpdated }) {
       );
       setCategories(
         categories.map((cat) =>
-          cat.name === editCategory ? { name: response.data.name, userId: cat.userId } : cat
+          cat.name === editCategory ? response.data : cat
         )
       );
       setEditCategory(null);

@@ -47,6 +47,20 @@ async def get_expenses(
     return [ExpenseResponse(**{**exp, "_id": str(exp["_id"]), "userId": str(exp["userId"])}) for exp in expenses]
 
 
+@app.delete("/expense/{expense_id}")
+async def delete_expense(
+    expense_id: str,
+    current_user: Annotated[TokenData, Depends(get_current_user)],
+    db: Annotated[AsyncIOMotorDatabase, Depends(get_db)],
+) -> dict[str, str]:
+    print(f"Deleting expense with ID: {expense_id}")
+    print(f"Current user ID: {current_user.userId}")
+    result = await db.expense.delete_one({"_id": expense_id, "userId": current_user.userId})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Expense not found or not owned by user")
+    return {"message": "Expense deleted successfully"}
+
+
 @app.post("/categories")
 async def create_category(
     category: Category,
@@ -82,14 +96,6 @@ async def list_categories(
         raise HTTPException(status_code=500, detail=f"Failed to fetch categories: {e!s}") from e
 
 
-@app.get("/user")
-async def get_user(current_user: Annotated[TokenData, Depends(get_current_user)]) -> dict[str, str]:
-    try:
-        return {"userId": str(current_user.userId)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch user: {e!s}") from e
-
-
 @app.put("/categories/{name}")
 async def update_category(
     name: str,
@@ -122,6 +128,14 @@ async def delete_category(
         raise HTTPException(status_code=400, detail="Cannot delete category used in records")
     await db.category.delete_one({"name": name, "userId": current_user.userId})
     return {"message": "Category deleted successfully"}
+
+
+@app.get("/user")
+async def get_user(current_user: Annotated[TokenData, Depends(get_current_user)]) -> dict[str, str]:
+    try:
+        return {"userId": str(current_user.userId)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user: {e!s}") from e
 
 
 @app.get("/health")

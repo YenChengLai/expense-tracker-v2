@@ -64,11 +64,11 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
           }),
           axios.get("http://127.0.0.1:8001/categories", {
             headers: { Authorization: `Bearer ${token}` },
-            params: { show_universal: true }, // Include universal categories
+            params: { show_universal: true },
           }),
         ]);
         setRecords(recordResponse.data);
-        setCategories(categoryResponse.data.map(cat => cat.name) || []);
+        setCategories(categoryResponse.data.map((cat) => cat.name) || []);
         applyFilterAndSort(recordResponse.data, selectedCategories, selectedType, sortField, sortDirection, search);
       } catch (err) {
         setError(err.response?.data?.detail || "Failed to load data. Please check your connection or login again.");
