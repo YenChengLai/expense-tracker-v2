@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta
 
 import bcrypt
+from bson import ObjectId
 from fastapi import HTTPException
 from jose import JWTError, jwt
 from pymongo.database import Database
@@ -32,7 +33,12 @@ def authenticate_user(email: str, password: str, db: Database) -> UserResponse:
     user = db.user.find_one({"email": email})
     if not user or not verify_password(password, user["hashedPassword"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    return UserResponse(email=user["email"], userId=str(user["_id"]))
+    if user.get("deletedAt") is not None:
+        raise HTTPException(status_code=401, detail="User is deleted")
+    if not user.get("verified"):
+        raise HTTPException(status_code=401, detail="Account not approved yet")
+    role = "admin" if email == ADMIN_EMAIL else "user"
+    return UserResponse(email=user["email"], userId=str(user["_id"]), role=role)
 
 
 def verify_token(token: str, db: Database) -> UserResponse:
@@ -46,7 +52,8 @@ def verify_token(token: str, db: Database) -> UserResponse:
         user = db.user.find_one({"email": email})
         if user is None:
             raise HTTPException(status_code=401, detail="User not found")
-        return UserResponse(email=email, userId=str(user["_id"]))
+        role = "admin" if email == ADMIN_EMAIL else "user"
+        return UserResponse(email=email, userId=str(user["_id"]), role=role)
     except JWTError as exc:
         raise HTTPException(status_code=401, detail="Could not validate token") from exc
 
@@ -72,7 +79,7 @@ def initiate_password_reset(email: str, db: Database) -> str:
     return reset_link
 
 
-async def create_pending_user(email: str, password: str, db: Database) -> PendingUser:
+def create_pending_user(email: str, password: str, db: Database) -> PendingUser:
     # Check if email already exists in pending_users or user collections
     existing_pending = db.user.find_one({"email": email})
     existing_user = db.user.find_one({"email": email})
@@ -91,35 +98,28 @@ async def create_pending_user(email: str, password: str, db: Database) -> Pendin
         "groupId": None,
         "verified": False,
     }
-    db.user.insert_one(pending_user)
-
+    result = db.user.insert_one(pending_user)
+    pending_user["userId"] = str(result.inserted_id)
     return PendingUser(**pending_user)
 
 
-async def get_pending_users(db: Database) -> list[PendingUser]:
+def get_pending_users(db: Database) -> list[PendingUser]:
     pending_users = db.user.find({"verified": False}).to_list()
-    print(f"[Pending Users] {pending_users}")
-    return [PendingUser(**user) for user in pending_users]
+    return [PendingUser(**{**user, "userId": str(user["_id"])}) for user in pending_users]
 
 
-async def approve_user(user_id: str, approve: bool, db: Database) -> None:
+def approve_user(user_id: str, approve: bool, db: Database) -> None:
     # Find the pending user
-    pending_user = db.pending_users.find_one({"userId": user_id})
+    pending_user = db.user.find_one({"_id": ObjectId(user_id), "verified": False})
     if not pending_user:
         raise HTTPException(status_code=404, detail="Pending user not found")
 
-    # Delete from pending_users
-    db.pending_users.delete_one({"userId": user_id})
-
     # If approved, add to user collection
     if approve:
-        user = {
-            "email": pending_user["email"],
-            "hashedPassword": pending_user["hashedPassword"],
-            "userId": pending_user["userId"],
-            "status": "active",
-        }
-        db.user.insert_one(user)
+        # Mark as verified
+        db.user.update_one({"_id": ObjectId(user_id)}, {"$set": {"verified": True}})
         print(f"User approved: {pending_user['email']}")
     else:
+        # Delete from pending_users
+        db.user.delete_one({"_id": ObjectId(user_id)})
         print(f"User rejected: {pending_user['email']}")

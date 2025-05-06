@@ -17,6 +17,7 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     email: str
     userId: str
+    role: str
 
 
 class ForgotPasswordRequest(BaseModel):
@@ -35,9 +36,9 @@ class SignupRequest(BaseModel):
 
 
 class PendingUser(BaseModel):
+    userId: str
     email: str
     hashedPassword: str
-    _id: str
     createdAt: datetime
 
 

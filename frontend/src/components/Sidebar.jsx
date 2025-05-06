@@ -8,7 +8,7 @@ import PeopleIcon from "@mui/icons-material/People";
 
 const drawerWidth = 240;
 
-function Sidebar() {
+function Sidebar({ role }) {
   return (
     <Drawer
       sx={{
@@ -52,12 +52,14 @@ function Sidebar() {
           </ListItemIcon>
           <ListItemText primary="Settings" />
         </ListItem>
-        <ListItem button component={Link} to="/admin/approvals">
-          <ListItemIcon>
-            <PeopleIcon />
-          </ListItemIcon>
-          <ListItemText primary="User Approvals" />
-        </ListItem>
+        {role === "admin" && (
+          <ListItem button component={Link} to="/admin/approvals">
+            <ListItemIcon>
+              <PeopleIcon />
+            </ListItemIcon>
+            <ListItemText primary="User Approvals" />
+          </ListItem>
+        )}
       </List>
     </Drawer>
   );

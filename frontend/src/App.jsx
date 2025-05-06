@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
 import Box from "@mui/material/Box";
@@ -46,7 +46,29 @@ function App() {
   const [refreshRecords, setRefreshRecords] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
   const [mode, setMode] = useState("light");
+  const [userRole, setUserRole] = useState(null);
   const theme = mode === "light" ? lightTheme : darkTheme;
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (token) {
+        try {
+          const response = await axios.get("http://127.0.0.1:8002/verify-token", {
+            params: { token },
+          });
+          setUserRole(response.data.role);
+        } catch (err) {
+          console.error("Failed to fetch user role:", err);
+          setUserRole(null);
+          localStorage.removeItem("token");
+          setToken("");
+        }
+      } else {
+        setUserRole(null);
+      }
+    };
+    fetchUserRole();
+  }, [token]);
 
   const handleRecordAdded = async (payload) => {
     console.log("handleRecordAdded called with payload:", payload);
@@ -99,6 +121,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setToken("");
+    setUserRole(null);
   };
 
   return (
@@ -107,7 +130,7 @@ function App() {
       <Router>
         {token ? (
           <Box sx={{ display: "flex" }}>
-            <Sidebar />
+            <Sidebar role={userRole} />
             <Box
               component="main"
               sx={{ flexGrow: 1, width: { sm: `calc(100% - 240px)` } }}

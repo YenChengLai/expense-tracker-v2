@@ -30,6 +30,7 @@ export default function AdminApproval({ token }) {
       const response = await axios.get("http://127.0.0.1:8002/pending-users", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      console.log("Pending Users Response:", response.data);
       setPendingUsers(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to load pending users.");

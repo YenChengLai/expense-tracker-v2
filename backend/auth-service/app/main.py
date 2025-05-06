@@ -48,6 +48,7 @@ def require_admin(authorization: Annotated[str | None, Header()] = None, db=Depe
         user = verify_token(token, db)
         if user.email != ADMIN_EMAIL:
             raise HTTPException(status_code=403, detail="Admin access required")
+        print(f"User {user.email} is an admin")
         return user
     except Exception as exc:
         raise HTTPException(status_code=401, detail="Invalid credentials") from exc
@@ -61,7 +62,7 @@ async def login(request: LoginRequest, db=Depends(get_db)) -> dict:
 
 
 @app.get("/verify-token")
-async def verify_token_endpoint(token: str, db=Depends(get_db)) -> UserResponse:
+def verify_token_endpoint(token: str, db=Depends(get_db)) -> UserResponse:
     return verify_token(token, db)
 
 
@@ -79,7 +80,7 @@ async def forgot_password(request: ForgotPasswordRequest, db=Depends(get_db)) ->
 @app.post("/signup")
 async def signup(request: SignupRequest, db=Depends(get_db)) -> dict:
     try:
-        await create_pending_user(request.email, request.password, db)
+        create_pending_user(request.email, request.password, db)
         return {"message": "Your registration is pending approval. You’ll be notified once approved."}
     except HTTPException as e:
         raise e
@@ -91,15 +92,15 @@ async def signup(request: SignupRequest, db=Depends(get_db)) -> dict:
 async def list_pending_users(
     _: Annotated[UserResponse, Depends(require_admin)], db=Depends(get_db)
 ) -> list[PendingUser]:
-    return await get_pending_users(db)
+    return get_pending_users(db)
 
 
 @app.post("/approve-user")
-async def approve_user_endpoint(
+def approve_user_endpoint(
     request: UserApprovalRequest, _: Annotated[UserResponse, Depends(require_admin)], db=Depends(get_db)
 ) -> dict:
     try:
-        await approve_user(request.userId, request.approve, db)
+        approve_user(request.userId, request.approve, db)
         action = "approved" if request.approve else "rejected"
         return {"message": f"User {action} successfully."}
     except HTTPException as e:
@@ -109,5 +110,5 @@ async def approve_user_endpoint(
 
 
 @app.get("/health")
-async def health_check() -> dict:
+def health_check() -> dict:
     return {"status": "Auth service is up"}
