@@ -41,7 +41,7 @@ const baseTheme = {
         MuiTableHead: {
             styleOverrides: {
                 root: {
-                    backgroundColor: "#edf2f7",
+                    backgroundColor: (theme) => theme.palette.background.paper, // Adapt to theme
                 },
             },
         },
@@ -49,7 +49,8 @@ const baseTheme = {
             styleOverrides: {
                 root: {
                     "&:hover": {
-                        backgroundColor: "#f7fafc",
+                        backgroundColor: (theme) =>
+                            theme.palette.mode === "light" ? "#f7fafc" : theme.palette.grey[800], // Dark mode hover
                     },
                 },
             },
@@ -84,7 +85,7 @@ const baseTheme = {
                 root: {
                     "& .MuiOutlinedInput-root": {
                         borderRadius: 8,
-                        backgroundColor: "#fff",
+                        backgroundColor: (theme) => theme.palette.background.paper,
                     },
                 },
             },
@@ -92,7 +93,7 @@ const baseTheme = {
         MuiAppBar: {
             styleOverrides: {
                 root: {
-                    backgroundColor: "#ffffff",
+                    backgroundColor: (theme) => theme.palette.background.paper,
                 },
             },
         },
@@ -107,7 +108,8 @@ const baseTheme = {
                         },
                     },
                     "&:hover": {
-                        backgroundColor: "#f7fafc",
+                        backgroundColor: (theme) =>
+                            theme.palette.mode === "light" ? "#f7fafc" : theme.palette.grey[800],
                     },
                 },
             },

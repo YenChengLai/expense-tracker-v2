@@ -9,8 +9,6 @@ const drawerWidth = 240;
 
 function Sidebar({ role, userName, userImage }) {
   const location = useLocation();
-  console.log("Sidebar re-rendered with location:", location.pathname); // Debug re-render
-  console.log("userImage:", userImage); // Debug the received image
 
   return (
     <Drawer
@@ -20,9 +18,9 @@ function Sidebar({ role, userName, userImage }) {
         "& .MuiDrawer-paper": {
           width: drawerWidth,
           boxSizing: "border-box",
-          backgroundColor: "#edf2f7",
-          color: "#2d3748",
-          borderRight: `1px solid ${"#e2e8f0"}`,
+          backgroundColor: (theme) => theme.palette.background.paper, // Use theme background
+          color: (theme) => theme.palette.text.primary, // Use theme text color
+          borderRight: (theme) => `1px solid ${theme.palette.divider}`, // Use theme divider
         },
       }}
       variant="permanent"
@@ -34,9 +32,9 @@ function Sidebar({ role, userName, userImage }) {
             src={userImage || "https://via.placeholder.com/40"}
             alt="User Profile"
             style={{ borderRadius: "50%", width: "40px", height: "40px", marginRight: "10px" }}
-            onError={(e) => { e.target.src = "https://via.placeholder.com/40"; console.log("Image load failed, using placeholder"); }}
+            // onError={(e) => { e.target.src = "https://via.placeholder.com/40"; console.log("Image load failed, using placeholder"); }}
           />
-          <Typography variant="h6" noWrap color="#2d3748">
+          <Typography variant="h6" noWrap sx={{ color: (theme) => theme.palette.text.primary }}>
             {userName || "User"}
           </Typography>
         </Box>
@@ -48,10 +46,10 @@ function Sidebar({ role, userName, userImage }) {
           selected={location.pathname === "/"}
           sx={{
             "& .MuiListItemIcon-root": {
-              color: location.pathname === "/" ? "#33ccff" : "#00c4cc",
+              color: location.pathname === "/" ? "#33ccff" : (theme) => theme.palette.primary.main,
             },
             "& .MuiListItemText-primary": {
-              color: location.pathname === "/" ? "#33ccff" : "#2d3748",
+              color: location.pathname === "/" ? "#33ccff" : (theme) => theme.palette.text.primary,
             },
           }}
           style={{
@@ -70,10 +68,10 @@ function Sidebar({ role, userName, userImage }) {
           selected={location.pathname === "/expenses"}
           sx={{
             "& .MuiListItemIcon-root": {
-              color: location.pathname === "/expenses" ? "#33ccff" : "#00c4cc",
+              color: location.pathname === "/expenses" ? "#33ccff" : (theme) => theme.palette.primary.main,
             },
             "& .MuiListItemText-primary": {
-              color: location.pathname === "/expenses" ? "#33ccff" : "#2d3748",
+              color: location.pathname === "/expenses" ? "#33ccff" : (theme) => theme.palette.text.primary,
             },
           }}
           style={{
@@ -92,10 +90,10 @@ function Sidebar({ role, userName, userImage }) {
           selected={location.pathname === "/settings"}
           sx={{
             "& .MuiListItemIcon-root": {
-              color: location.pathname === "/settings" ? "#33ccff" : "#00c4cc",
+              color: location.pathname === "/settings" ? "#33ccff" : (theme) => theme.palette.primary.main,
             },
             "& .MuiListItemText-primary": {
-              color: location.pathname === "/settings" ? "#33ccff" : "#2d3748",
+              color: location.pathname === "/settings" ? "#33ccff" : (theme) => theme.palette.text.primary,
             },
           }}
           style={{
@@ -115,10 +113,10 @@ function Sidebar({ role, userName, userImage }) {
             selected={location.pathname === "/admin/approvals"}
             sx={{
               "& .MuiListItemIcon-root": {
-                color: location.pathname === "/admin/approvals" ? "#33ccff" : "#00c4cc",
+                color: location.pathname === "/admin/approvals" ? "#33ccff" : (theme) => theme.palette.primary.main,
               },
               "& .MuiListItemText-primary": {
-                color: location.pathname === "/admin/approvals" ? "#33ccff" : "#2d3748",
+                color: location.pathname === "/admin/approvals" ? "#33ccff" : (theme) => theme.palette.text.primary,
               },
             }}
             style={{
