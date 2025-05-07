@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { ThemeProvider, createTheme, CssBaseline } from "@mui/material";
+import { ThemeProvider, CssBaseline } from "@mui/material";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
 import AppBar from "@mui/material/AppBar";
@@ -21,25 +21,7 @@ import ForgotPassword from "./components/ForgotPassword";
 import Signup from "./components/Signup";
 import AdminApproval from "./components/AdminApproval";
 import axios from "axios";
-
-// Define light and dark themes
-const lightTheme = createTheme({
-  palette: {
-    mode: "light",
-    primary: { main: "#1976d2" },
-    secondary: { main: "#d32f2f" },
-    background: { default: "#f4f7fa" },
-  },
-});
-
-const darkTheme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: { main: "#90caf9" },
-    secondary: { main: "#f48fb1" },
-    background: { default: "#121212" },
-  },
-});
+import { lightTheme, darkTheme } from "./theme";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -129,22 +111,22 @@ function App() {
       <CssBaseline />
       <Router>
         {token ? (
-          <Box sx={{ display: "flex" }}>
+          <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "background.default" }}>
             <Sidebar role={userRole} />
             <Box
               component="main"
-              sx={{ flexGrow: 1, width: { sm: `calc(100% - 240px)` } }}
+              sx={{ flexGrow: 1, width: { sm: `calc(100% - 240px)` }, p: 3 }}
             >
               <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
                 <Toolbar>
-                  <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                  <Typography variant="h6" component="div" sx={{ flexGrow: 1, color: "text.primary" }}>
                     Expense Tracker
                   </Typography>
                   <Button
                     color="inherit"
                     onClick={() => setMode(mode === "light" ? "dark" : "light")}
                     startIcon={mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
-                    sx={{ mr: 1 }}
+                    sx={{ mr: 1, color: "text.primary" }}
                   >
                     {mode === "light" ? "Dark" : "Light"} Mode
                   </Button>
@@ -153,6 +135,7 @@ function App() {
                     color="inherit"
                     startIcon={<LogoutIcon />}
                     onClick={handleLogout}
+                    sx={{ color: "text.primary", borderColor: "text.primary" }}
                   >
                     Logout
                   </Button>

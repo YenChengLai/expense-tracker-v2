@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import axios from "axios";
 import {
   CssBaseline,
-  Stack,
-  Box,
+  Card,
+  CardContent,
   Alert,
   TextField,
   Button,
   Typography,
+  Box,
   CircularProgress,
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
@@ -44,58 +45,26 @@ export default function Signup({ theme }) {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Stack
-        direction="column"
-        component="main"
+      <Box
         sx={{
-          justifyContent: "center",
           minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "background.default",
           backgroundImage: theme.palette.mode === "light"
             ? "radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))"
             : "radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))",
           backgroundRepeat: "no-repeat",
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            zIndex: -1,
-            inset: 0,
-            backgroundImage: theme.palette.mode === "light"
-              ? "radial-gradient(ellipse at 50% 50%, hsl(210, 100%, 97%), hsl(0, 0%, 100%))"
-              : "radial-gradient(at 50% 50%, hsla(210, 100%, 16%, 0.5), hsl(220, 30%, 5%))",
-          },
         }}
       >
-        <Stack
-          direction={{ xs: "column-reverse", md: "row" }}
-          sx={{
-            justifyContent: "center",
-            gap: { xs: 6, sm: 12 },
-            p: { xs: 2, sm: 4 },
-            m: "auto",
-            maxWidth: "1200px",
-          }}
-        >
-          <Box sx={{ maxWidth: { xs: "100%", md: "50%" }, p: 2 }}>
-            <Typography variant="h4" gutterBottom>
-              Join Expense Tracker
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Create an account to start managing your expenses and income with ease.
-              Your registration will be reviewed by an admin before you can sign in.
-            </Typography>
-          </Box>
-          <Box
-            sx={{
-              maxWidth: { xs: "100%", md: 400 },
-              width: "100%",
-              p: 2,
-              bgcolor: "background.paper",
-              boxShadow: 3,
-              borderRadius: 2,
-            }}
-          >
+        <Card sx={{ maxWidth: 400, width: "100%", p: 3 }}>
+          <CardContent>
             <Typography variant="h5" gutterBottom>
               Sign Up
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Join Expense Tracker to manage your expenses and income with ease.
             </Typography>
             {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
@@ -130,9 +99,10 @@ export default function Signup({ theme }) {
               <Button
                 type="submit"
                 variant="contained"
+                color="primary"
                 fullWidth
                 disabled={isLoading}
-                sx={{ mt: 1 }}
+                sx={{ mt: 2 }}
               >
                 {isLoading ? "Submitting..." : "Submit Registration"}
               </Button>
@@ -141,6 +111,7 @@ export default function Signup({ theme }) {
                   component={Link}
                   to="/login"
                   variant="text"
+                  color="primary"
                   size="small"
                   disabled={isLoading}
                 >
@@ -148,9 +119,9 @@ export default function Signup({ theme }) {
                 </Button>
               </Box>
             </Box>
-          </Box>
-        </Stack>
-      </Stack>
+          </CardContent>
+        </Card>
+      </Box>
     </ThemeProvider>
   );
 }

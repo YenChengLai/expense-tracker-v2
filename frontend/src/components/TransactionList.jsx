@@ -26,6 +26,7 @@ import {
   DialogActions,
   Button,
   TextField,
+  Grid,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -33,6 +34,9 @@ import TransactionForm from "./TransactionForm";
 import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { DateTime } from "luxon";
+
+// Import Inter font from Google Fonts in your index.html or via a CSS import
+// Add this to your index.html: <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 function TransactionList({ token, refreshKey, onRecordUpdated }) {
   const [records, setRecords] = useState([]);
@@ -181,7 +185,6 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
   };
 
   const handleEditRecord = (rec) => {
-    // Convert the date string to a DateTime object for the MobileDatePicker
     const parsedDate = DateTime.fromISO(rec.date, { zone: "utc" });
     if (!parsedDate.isValid) {
       console.error("Invalid date format:", rec.date);
@@ -194,162 +197,233 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
     });
   };
 
+  // Calculate summary metrics for the dashboard
+  const totalExpenses = filteredRecords
+    .filter((rec) => rec.type === "expense")
+    .reduce((sum, rec) => sum + rec.amount, 0);
+  const totalIncome = filteredRecords
+    .filter((rec) => rec.type === "income")
+    .reduce((sum, rec) => sum + rec.amount, 0);
+
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Your Records
-        </Typography>
-        <TextField
-          label="Search"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            applyFilterAndSort(records, selectedCategories, selectedType, sortField, sortDirection, e.target.value);
-          }}
-          sx={{ mb: 2 }}
-          fullWidth
-        />
-        <Box mb={2}>
-          <Typography variant="subtitle2" gutterBottom>
-            Filter by Category
+    <Box sx={{ fontFamily: "'Inter', sans-serif", backgroundColor: "#f4f7fa", minHeight: "100vh", p: 4 }}>
+      <Card sx={{ borderRadius: 4, boxShadow: "0 8px 24px rgba(0, 0, 0, 0.05)" }}>
+        <CardContent sx={{ backgroundColor: "#ffffff" }}>
+          <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: "#2d3748" }}>
+            Expense Dashboard
           </Typography>
-          {categories.length > 0 ? (
-            categories.map((category) => (
-              <FormControlLabel
-                key={category}
-                control={
-                  <Checkbox
-                    checked={selectedCategories.includes(category)}
-                    onChange={() => handleCategoryChange(category)}
-                  />
-                }
-                label={category}
-              />
-            ))
-          ) : (
-            <Typography color="text.secondary">No categories available.</Typography>
+          {/* Summary Cards */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6}>
+              <Card sx={{ borderRadius: 3, backgroundColor: "#e6fffa", boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}>
+                <CardContent>
+                  <Typography variant="subtitle2" sx={{ color: "#4a5568", fontWeight: 500 }}>
+                    Total Income
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: "#2b6cb0", fontWeight: 600 }}>
+                    {totalIncome.toFixed(2)} USD
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Card sx={{ borderRadius: 3, backgroundColor: "#fefcbf", boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}>
+                <CardContent>
+                  <Typography variant="subtitle2" sx={{ color: "#4a5568", fontWeight: 500 }}>
+                    Total Expenses
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: "#c53030", fontWeight: 600 }}>
+                    {totalExpenses.toFixed(2)} USD
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: "#2d3748", mt: 2 }}>
+            Your Records
+          </Typography>
+          <TextField
+            label="Search"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              applyFilterAndSort(records, selectedCategories, selectedType, sortField, sortDirection, e.target.value);
+            }}
+            sx={{ mb: 3, backgroundColor: "#fff", borderRadius: 2, "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+            fullWidth
+          />
+          <Grid container spacing={3} sx={{ mb: 3 }}>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ borderRadius: 3, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}>
+                <CardContent>
+                  <Typography variant="subtitle2" gutterBottom sx={{ color: "#4a5568", fontWeight: 500 }}>
+                    Filter by Category
+                  </Typography>
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <FormControlLabel
+                        key={category}
+                        control={
+                          <Checkbox
+                            checked={selectedCategories.includes(category)}
+                            onChange={() => handleCategoryChange(category)}
+                            sx={{ color: "#a0aec0", "&.Mui-checked": { color: "#2b6cb0" } }}
+                          />
+                        }
+                        label={category}
+                        sx={{ color: "#4a5568" }}
+                      />
+                    ))
+                  ) : (
+                    <Typography color="text.secondary">No categories available.</Typography>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ borderRadius: 3, boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}>
+                <CardContent>
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel sx={{ color: "#4a5568" }}>Record Type</InputLabel>
+                    <Select
+                      value={selectedType}
+                      label="Record Type"
+                      onChange={handleTypeChange}
+                      sx={{ backgroundColor: "#fff", borderRadius: 2 }}
+                    >
+                      <MenuItem value="all">All</MenuItem>
+                      <MenuItem value="expense">Expense</MenuItem>
+                      <MenuItem value="income">Income</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <LocalizationProvider dateAdapter={AdapterLuxon}>
+                    <Box sx={{ display: "flex", gap: 2 }}>
+                      <DatePicker
+                        label="Start Date"
+                        value={dateRange.start}
+                        onChange={(newValue) => setDateRange({ ...dateRange, start: newValue })}
+                        slotProps={{ textField: { size: "small", sx: { backgroundColor: "#fff", borderRadius: 2 } } }}
+                      />
+                      <DatePicker
+                        label="End Date"
+                        value={dateRange.end}
+                        onChange={(newValue) => setDateRange({ ...dateRange, end: newValue })}
+                        slotProps={{ textField: { size: "small", sx: { backgroundColor: "#fff", borderRadius: 2 } } }}
+                      />
+                    </Box>
+                  </LocalizationProvider>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+          {isLoading && (
+            <Box display="flex" justifyContent="center" my={2}>
+              <CircularProgress />
+            </Box>
           )}
-        </Box>
-        <FormControl fullWidth sx={{ mb: 2 }}>
-          <InputLabel>Record Type</InputLabel>
-          <Select
-            value={selectedType}
-            label="Record Type"
-            onChange={handleTypeChange}
-          >
-            <MenuItem value="all">All</MenuItem>
-            <MenuItem value="expense">Expense</MenuItem>
-            <MenuItem value="income">Income</MenuItem>
-          </Select>
-        </FormControl>
-        <LocalizationProvider dateAdapter={AdapterLuxon}>
-          <Box sx={{ mb: 2, display: "flex", gap: 2 }}>
-            <DatePicker
-              label="Start Date"
-              value={dateRange.start}
-              onChange={(newValue) => setDateRange({ ...dateRange, start: newValue })}
-              slotProps={{ textField: { size: "small" } }}
-            />
-            <DatePicker
-              label="End Date"
-              value={dateRange.end}
-              onChange={(newValue) => setDateRange({ ...dateRange, end: newValue })}
-              slotProps={{ textField: { size: "small" } }}
-            />
-          </Box>
-        </LocalizationProvider>
-        {isLoading && (
-          <Box display="flex" justifyContent="center" my={2}>
-            <CircularProgress />
-          </Box>
-        )}
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {!isLoading && filteredRecords.length === 0 ? (
-          <Typography color="text.secondary" align="center">
-            No records match the filter.
-          </Typography>
-        ) : (
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>
-                  <TableSortLabel
-                    active={sortField === "amount"}
-                    direction={sortField === "amount" ? sortDirection : "asc"}
-                    onClick={() => handleSort("amount")}
-                  >
-                    Amount
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>
-                  <TableSortLabel
-                    active={sortField === "date"}
-                    direction={sortField === "date" ? sortDirection : "asc"}
-                    onClick={() => handleSort("date")}
-                  >
-                    Date
-                  </TableSortLabel>
-                </TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredRecords.map((rec) => (
-                <TableRow key={rec.id}>
-                  <TableCell>{rec.amount} {rec.currency}</TableCell>
-                  <TableCell>{rec.category}</TableCell>
-                  <TableCell>{rec.type.charAt(0).toUpperCase() + rec.type.slice(1)}</TableCell>
-                  <TableCell>{rec.date}</TableCell>
-                  <TableCell>{rec.description || "-"}</TableCell>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {!isLoading && filteredRecords.length === 0 ? (
+            <Typography color="text.secondary" align="center">
+              No records match the filter.
+            </Typography>
+          ) : (
+            <Table sx={{ backgroundColor: "#fff", borderRadius: 2, overflow: "hidden", boxShadow: "0 4px 12px rgba(0, 0, 0, 0.05)" }}>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: "#edf2f7" }}>
                   <TableCell>
-                    <IconButton
-                      onClick={() => handleEditRecord(rec)}
-                      disabled={isLoading}
+                    <TableSortLabel
+                      active={sortField === "amount"}
+                      direction={sortField === "amount" ? sortDirection : "asc"}
+                      onClick={() => handleSort("amount")}
+                      sx={{ fontWeight: 600, color: "#2d3748" }}
                     >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => setDeleteId(rec.id)}
-                      disabled={isLoading}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
+                      Amount
+                    </TableSortLabel>
                   </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#2d3748" }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#2d3748" }}>Type</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortField === "date"}
+                      direction={sortField === "date" ? sortDirection : "asc"}
+                      onClick={() => handleSort("date")}
+                      sx={{ fontWeight: 600, color: "#2d3748" }}
+                    >
+                      Date
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#2d3748" }}>Description</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: "#2d3748" }}>Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-        <Dialog open={editRecord !== null} onClose={() => setEditRecord(null)}>
-          <DialogTitle>Edit Record</DialogTitle>
-          <DialogContent>
-            {editRecord && (
-              <TransactionForm
-                token={token}
-                onRecordAdded={(payload) => handleRecordAction(payload, true, editRecord.id)}
-                initialData={editRecord}
-              />
-            )}
-          </DialogContent>
-        </Dialog>
-        <Dialog open={deleteId !== null} onClose={() => setDeleteId(null)}>
-          <DialogTitle>Confirm Delete</DialogTitle>
-          <DialogContent>
-            <Typography>Are you sure you want to delete this record?</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button onClick={handleDeleteRecord} color="error">
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </CardContent>
-    </Card>
+              </TableHead>
+              <TableBody>
+                {filteredRecords.map((rec) => (
+                  <TableRow key={rec.id} sx={{ "&:hover": { backgroundColor: "#f7fafc" } }}>
+                    <TableCell sx={{ color: rec.type === "expense" ? "#c53030" : "#2b6cb0", fontWeight: 500 }}>
+                      {rec.amount} {rec.currency}
+                    </TableCell>
+                    <TableCell sx={{ color: "#4a5568" }}>{rec.category}</TableCell>
+                    <TableCell sx={{ color: "#4a5568" }}>
+                      {rec.type.charAt(0).toUpperCase() + rec.type.slice(1)}
+                    </TableCell>
+                    <TableCell sx={{ color: "#4a5568" }}>{rec.date}</TableCell>
+                    <TableCell sx={{ color: "#4a5568" }}>{rec.description || "-"}</TableCell>
+                    <TableCell>
+                      <IconButton
+                        onClick={() => handleEditRecord(rec)}
+                        disabled={isLoading}
+                        sx={{ color: "#2b6cb0", "&:hover": { color: "#2c5282" } }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => setDeleteId(rec.id)}
+                        disabled={isLoading}
+                        sx={{ color: "#c53030", "&:hover": { color: "#9b2c2c" } }}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+          <Dialog open={editRecord !== null} onClose={() => setEditRecord(null)} sx={{ "& .MuiDialog-paper": { borderRadius: 3 } }}>
+            <DialogTitle sx={{ backgroundColor: "#edf2f7", color: "#2d3748", fontWeight: 600 }}>
+              Edit Record
+            </DialogTitle>
+            <DialogContent sx={{ backgroundColor: "#f7fafc", py: 3 }}>
+              {editRecord && (
+                <TransactionForm
+                  token={token}
+                  onRecordAdded={(payload) => handleRecordAction(payload, true, editRecord.id)}
+                  initialData={editRecord}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
+          <Dialog open={deleteId !== null} onClose={() => setDeleteId(null)} sx={{ "& .MuiDialog-paper": { borderRadius: 3 } }}>
+            <DialogTitle sx={{ backgroundColor: "#edf2f7", color: "#2d3748", fontWeight: 600 }}>
+              Confirm Delete
+            </DialogTitle>
+            <DialogContent sx={{ backgroundColor: "#f7fafc", py: 3 }}>
+              <Typography sx={{ color: "#4a5568" }}>
+                Are you sure you want to delete this record?
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ backgroundColor: "#f7fafc", py: 2 }}>
+              <Button onClick={() => setDeleteId(null)} sx={{ color: "#718096", "&:hover": { backgroundColor: "#edf2f7" } }}>
+                Cancel
+              </Button>
+              <Button onClick={handleDeleteRecord} sx={{ color: "#c53030", "&:hover": { backgroundColor: "#fefcbf" } }}>
+                Delete
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }
 

@@ -33,7 +33,6 @@ function Settings({ token, onCategoryUpdated }) {
   const [profile, setProfile] = useState({ email: "", password: "" });
   const [currentUserId, setCurrentUserId] = useState(null);
 
-  // Fetch current user's ID
   useEffect(() => {
     const fetchUserId = async () => {
       try {
@@ -49,7 +48,6 @@ function Settings({ token, onCategoryUpdated }) {
     fetchUserId();
   }, [token]);
 
-  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       setIsLoading(true);
@@ -165,76 +163,83 @@ function Settings({ token, onCategoryUpdated }) {
   };
 
   return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Settings
-        </Typography>
-        <Typography variant="h8" gutterBottom>
-          Category Management
-        </Typography>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-            <TextField
-              label="New Category"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              fullWidth
-              disabled={isLoading}
-            />
-            <Button
-              variant="contained"
-              onClick={handleAddCategory}
-              disabled={isLoading}
-            >
-              {isLoading ? "Adding..." : "Add"}
-            </Button>
-          </Box>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Category</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {categories.map((cat) => (
-                <TableRow key={cat.name}>
-                  <TableCell sx={{ fontStyle: cat.userId ? "normal" : "italic" }}>
-                    {cat.name}
-                  </TableCell>
-                  <TableCell>
-                    {cat.userId && cat.userId === currentUserId ? (
-                      <>
-                        <IconButton
-                          onClick={() => {
-                            setEditCategory(cat.name);
-                            setEditName(cat.name);
-                          }}
-                          disabled={isLoading}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          onClick={() => setDeleteDialog({ open: true, name: cat.name })}
-                          disabled={isLoading}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        No actions available
-                      </Typography>
-                    )}
-                  </TableCell>
+    <Box sx={{ p: 3, backgroundColor: "background.default", minHeight: "100vh" }}>
+      <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+        Settings
+      </Typography>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Category Management
+          </Typography>
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+              <TextField
+                label="New Category"
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                fullWidth
+                disabled={isLoading}
+              />
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleAddCategory}
+                disabled={isLoading}
+              >
+                {isLoading ? "Adding..." : "Add"}
+              </Button>
+            </Box>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Box>
-        <Box sx={{ mt: 4 }}>
+              </TableHead>
+              <TableBody>
+                {categories.map((cat) => (
+                  <TableRow key={cat.name}>
+                    <TableCell sx={{ fontStyle: cat.userId ? "normal" : "italic" }}>
+                      {cat.name}
+                    </TableCell>
+                    <TableCell>
+                      {cat.userId && cat.userId === currentUserId ? (
+                        <>
+                          <IconButton
+                            onClick={() => {
+                              setEditCategory(cat.name);
+                              setEditName(cat.name);
+                            }}
+                            disabled={isLoading}
+                            color="primary"
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => setDeleteDialog({ open: true, name: cat.name })}
+                            disabled={isLoading}
+                            color="secondary"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          No actions available
+                        </Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent>
           <Typography variant="h6" gutterBottom>
             Profile
           </Typography>
@@ -258,55 +263,58 @@ function Settings({ token, onCategoryUpdated }) {
           <Button
             onClick={handleProfileUpdate}
             variant="contained"
+            color="primary"
             disabled={isLoading}
             sx={{ mt: 2 }}
           >
             {isLoading ? "Updating..." : "Update Profile"}
           </Button>
-        </Box>
-        <Dialog open={editCategory !== null} onClose={() => setEditCategory(null)}>
-          <DialogTitle>Edit Category</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="Category Name"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              fullWidth
-              margin="normal"
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setEditCategory(null)}>Cancel</Button>
-            <Button onClick={handleEditCategory} variant="contained">
-              Save
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog
-          open={deleteDialog.open}
-          onClose={() => setDeleteDialog({ open: false, name: "" })}
-        >
-          <DialogTitle>Delete Category</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to delete the category '{deleteDialog.name}'?
-            </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteDialog({ open: false, name: "" })}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDeleteCategory}
-              variant="contained"
-              color="error"
-            >
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      <Dialog open={editCategory !== null} onClose={() => setEditCategory(null)}>
+        <DialogTitle>Edit Category</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Category Name"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            fullWidth
+            margin="normal"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditCategory(null)} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleEditCategory} variant="contained" color="primary">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, name: "" })}
+      >
+        <DialogTitle>Delete Category</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the category '{deleteDialog.name}'?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialog({ open: false, name: "" })} color="primary">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteCategory}
+            variant="contained"
+            color="secondary"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
 

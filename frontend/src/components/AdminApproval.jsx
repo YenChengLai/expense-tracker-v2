@@ -6,10 +6,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
   TableRow,
-  Paper,
+  Card,
+  CardContent,
   Button,
   CircularProgress,
   Alert,
@@ -52,7 +52,7 @@ export default function AdminApproval({ token }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSuccess(response.data.message);
-      fetchPendingUsers(); // Refresh the list
+      fetchPendingUsers();
     } catch (err) {
       setError(err.response?.data?.detail || `Failed to ${approve ? "approve" : "reject"} user.`);
     }
@@ -63,56 +63,58 @@ export default function AdminApproval({ token }) {
   }, []);
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Admin Approval
-      </Typography>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-      {loading ? (
-        <Box display="flex" justifyContent="center">
-          <CircularProgress />
-        </Box>
-      ) : pendingUsers.length === 0 ? (
-        <Typography>No pending registrations.</Typography>
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Email</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {pendingUsers.map((user) => (
-                <TableRow key={user.userId}>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      onClick={() => handleApproval(user.userId, true)}
-                      sx={{ mr: 1 }}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      onClick={() => handleApproval(user.userId, false)}
-                    >
-                      Reject
-                    </Button>
-                  </TableCell>
+    <Box sx={{ p: 3, backgroundColor: "background.default", minHeight: "100vh" }}>
+      <Card>
+        <CardContent>
+          <Typography variant="h5" gutterBottom>
+            Admin Approval
+          </Typography>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+          {loading ? (
+            <Box display="flex" justifyContent="center">
+              <CircularProgress />
+            </Box>
+          ) : pendingUsers.length === 0 ? (
+            <Typography color="text.secondary">No pending registrations.</Typography>
+          ) : (
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Created At</TableCell>
+                  <TableCell>Actions</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+              </TableHead>
+              <TableBody>
+                {pendingUsers.map((user) => (
+                  <TableRow key={user.userId}>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => handleApproval(user.userId, true)}
+                        sx={{ mr: 1 }}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => handleApproval(user.userId, false)}
+                      >
+                        Reject
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </Box>
   );
 }

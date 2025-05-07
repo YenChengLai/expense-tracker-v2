@@ -40,14 +40,11 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
 
   useEffect(() => {
     if (initialData) {
-      // Validate and parse the date from initialData
       let parsedDate = null;
       if (initialData.date) {
-        // If date is already a DateTime object (from TransactionList), use it directly
         if (DateTime.isDateTime(initialData.date)) {
           parsedDate = initialData.date;
         } else {
-          // Otherwise, parse the date string
           parsedDate = DateTime.fromISO(initialData.date, { zone: "utc" });
           if (!parsedDate.isValid) {
             console.error("Invalid date format in initialData:", initialData.date);
@@ -56,7 +53,6 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
           }
         }
       }
-
       setFormData({
         amount: initialData.amount?.toString() || "",
         category: initialData.category || "",
@@ -163,125 +159,129 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
   };
 
   return (
-    <Card sx={{ mb: 3 }}>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          {initialData ? "Edit Record" : "Add a Record"}
-        </Typography>
-        {(error || categoryError) && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error || categoryError}
-          </Alert>
-        )}
-        {isLoading && (
-          <Box display="flex" justifyContent="center" mb={2}>
-            <CircularProgress />
-          </Box>
-        )}
-        <Box component="form" onSubmit={handleSubmit} noValidate>
-          <TextField
-            label="Amount"
-            type="number"
-            fullWidth
-            margin="normal"
-            value={formData.amount}
-            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-            placeholder="Enter amount"
-            required
-            disabled={isLoading}
-          />
-          <FormControl fullWidth margin="normal" disabled={isLoading}>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={formData.category || ""}
-              label="Category"
-              onChange={handleCategoryChange}
-              required
-            >
-              {recentCategories.length > 0 && (
-                <MenuItem disabled value="">
-                  Recent
-                </MenuItem>
-              )}
-              {recentCategories.map((cat) => (
-                <MenuItem key={cat} value={cat}>
-                  {cat}
-                </MenuItem>
-              ))}
-              <MenuItem disabled value="">
-                All
-              </MenuItem>
-              {categories.map((cat) => (
-                <MenuItem key={cat} value={cat}>
-                  {cat}
-                </MenuItem>
-              ))}
-              <MenuItem value="__add_new">Add New Category</MenuItem>
-            </Select>
-          </FormControl>
-          <Collapse in={showNewCategoryInput}>
-            <Box sx={{ display: "flex", gap: 2, mt: 2, flexDirection: { xs: "column", sm: "row" } }}>
-              <TextField
-                label="New Category"
-                type="text"
-                fullWidth
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                placeholder="Enter new category"
-                disabled={isLoading}
-              />
-              <Button
-                variant="outlined"
-                onClick={handleAddCategory}
-                disabled={isLoading}
-                sx={{ minWidth: 120 }}
-              >
-                {isLoading ? "Adding..." : "Add"}
-              </Button>
+    <Box sx={{ p: 3, backgroundColor: "background.default", minHeight: "100vh" }}>
+      <Card>
+        <CardContent>
+          <Typography variant="h5" gutterBottom>
+            {initialData ? "Edit Record" : "Add a Record"}
+          </Typography>
+          {(error || categoryError) && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error || categoryError}
+            </Alert>
+          )}
+          {isLoading && (
+            <Box display="flex" justifyContent="center" mb={2}>
+              <CircularProgress />
             </Box>
-          </Collapse>
-          <LocalizationProvider dateAdapter={AdapterLuxon}>
-            <MobileDatePicker
-              label="Date"
-              value={formData.date}
-              onChange={(newValue) => setFormData({ ...formData, date: newValue })}
-              slotProps={{ textField: { fullWidth: true, margin: "normal", required: true } }}
+          )}
+          <Box component="form" onSubmit={handleSubmit} noValidate>
+            <TextField
+              label="Amount"
+              type="number"
+              fullWidth
+              margin="normal"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              placeholder="Enter amount"
+              required
               disabled={isLoading}
             />
-          </LocalizationProvider>
-          <TextField
-            label="Description"
-            type="text"
-            fullWidth
-            margin="normal"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Enter description (optional)"
-            disabled={isLoading}
-          />
-          <FormControl fullWidth margin="normal" disabled={isLoading}>
-            <InputLabel>Type</InputLabel>
-            <Select
-              value={formData.type}
-              label="Type"
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+            <FormControl fullWidth margin="normal" disabled={isLoading}>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={formData.category || ""}
+                label="Category"
+                onChange={handleCategoryChange}
+                required
+              >
+                {recentCategories.length > 0 && (
+                  <MenuItem disabled value="">
+                    Recent
+                  </MenuItem>
+                )}
+                {recentCategories.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))}
+                <MenuItem disabled value="">
+                  All
+                </MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))}
+                <MenuItem value="__add_new">Add New Category</MenuItem>
+              </Select>
+            </FormControl>
+            <Collapse in={showNewCategoryInput}>
+              <Box sx={{ display: "flex", gap: 2, mt: 2, flexDirection: { xs: "column", sm: "row" } }}>
+                <TextField
+                  label="New Category"
+                  type="text"
+                  fullWidth
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="Enter new category"
+                  disabled={isLoading}
+                />
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleAddCategory}
+                  disabled={isLoading}
+                  sx={{ minWidth: 120 }}
+                >
+                  {isLoading ? "Adding..." : "Add"}
+                </Button>
+              </Box>
+            </Collapse>
+            <LocalizationProvider dateAdapter={AdapterLuxon}>
+              <MobileDatePicker
+                label="Date"
+                value={formData.date}
+                onChange={(newValue) => setFormData({ ...formData, date: newValue })}
+                slotProps={{ textField: { fullWidth: true, margin: "normal", required: true } }}
+                disabled={isLoading}
+              />
+            </LocalizationProvider>
+            <TextField
+              label="Description"
+              type="text"
+              fullWidth
+              margin="normal"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Enter description (optional)"
+              disabled={isLoading}
+            />
+            <FormControl fullWidth margin="normal" disabled={isLoading}>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={formData.type}
+                label="Type"
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              >
+                <MenuItem value="expense">Expense</MenuItem>
+                <MenuItem value="income">Income</MenuItem>
+              </Select>
+            </FormControl>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={isLoading}
+              sx={{ mt: 2 }}
             >
-              <MenuItem value="expense">Expense</MenuItem>
-              <MenuItem value="income">Income</MenuItem>
-            </Select>
-          </FormControl>
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            disabled={isLoading}
-            sx={{ mt: 2 }}
-          >
-            {isLoading ? "Saving..." : initialData ? "Update Record" : "Add Record"}
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
+              {isLoading ? "Saving..." : initialData ? "Update Record" : "Add Record"}
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }
 
