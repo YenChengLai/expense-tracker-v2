@@ -17,7 +17,7 @@ class Category(BaseModel):
     name: str
 
 
-class ExpenseResponse(BaseModel):
+class Expense(BaseModel):
     id: str
     userId: str
     groupId: str | None

@@ -28,32 +28,32 @@ function Sidebar({ role }) {
         </Typography>
       </Toolbar>
       <List>
-        <ListItem button component={Link} to="/">
+        <ListItem component={Link} to="/">
           <ListItemIcon>
             <InsightsIcon />
           </ListItemIcon>
           <ListItemText primary="Dashboard" />
         </ListItem>
-        <ListItem button component={Link} to="/add">
+        <ListItem component={Link} to="/add">
           <ListItemIcon>
             <AddIcon />
           </ListItemIcon>
           <ListItemText primary="Add a Record" />
         </ListItem>
-        <ListItem button component={Link} to="/list">
+        <ListItem component={Link} to="/list">
           <ListItemIcon>
             <ListIcon />
           </ListItemIcon>
           <ListItemText primary="Record List" />
         </ListItem>
-        <ListItem button component={Link} to="/settings">
+        <ListItem component={Link} to="/settings">
           <ListItemIcon>
             <SettingsIcon />
           </ListItemIcon>
           <ListItemText primary="Settings" />
         </ListItem>
         {role === "admin" && (
-          <ListItem button component={Link} to="/admin/approvals">
+          <ListItem component={Link} to="/admin/approvals">
             <ListItemIcon>
               <PeopleIcon />
             </ListItemIcon>

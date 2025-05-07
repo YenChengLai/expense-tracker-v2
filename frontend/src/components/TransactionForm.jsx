@@ -40,10 +40,27 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
 
   useEffect(() => {
     if (initialData) {
+      // Validate and parse the date from initialData
+      let parsedDate = null;
+      if (initialData.date) {
+        // If date is already a DateTime object (from TransactionList), use it directly
+        if (DateTime.isDateTime(initialData.date)) {
+          parsedDate = initialData.date;
+        } else {
+          // Otherwise, parse the date string
+          parsedDate = DateTime.fromISO(initialData.date, { zone: "utc" });
+          if (!parsedDate.isValid) {
+            console.error("Invalid date format in initialData:", initialData.date);
+            setError("Invalid date format in record. Please select a new date.");
+            parsedDate = null;
+          }
+        }
+      }
+
       setFormData({
         amount: initialData.amount?.toString() || "",
         category: initialData.category || "",
-        date: initialData.date ? DateTime.fromISO(initialData.date) : null,
+        date: parsedDate,
         description: initialData.description || "",
         type: initialData.type || "expense",
         currency: initialData.currency || "USD",
@@ -56,7 +73,7 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
       try {
         const response = await axios.get("http://127.0.0.1:8001/categories", {
           headers: { Authorization: `Bearer ${token}` },
-          params: { show_universal: true }, // Include universal categories
+          params: { show_universal: true },
         });
         setCategories(response.data.map(cat => cat.name) || []);
       } catch (err) {

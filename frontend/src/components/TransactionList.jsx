@@ -180,6 +180,20 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
     }
   };
 
+  const handleEditRecord = (rec) => {
+    // Convert the date string to a DateTime object for the MobileDatePicker
+    const parsedDate = DateTime.fromISO(rec.date, { zone: "utc" });
+    if (!parsedDate.isValid) {
+      console.error("Invalid date format:", rec.date);
+      setError("Invalid date format in record. Please check the data.");
+      return;
+    }
+    setEditRecord({
+      ...rec,
+      date: parsedDate,
+    });
+  };
+
   return (
     <Card>
       <CardContent>
@@ -293,7 +307,7 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
                   <TableCell>{rec.description || "-"}</TableCell>
                   <TableCell>
                     <IconButton
-                      onClick={() => setEditRecord(rec)}
+                      onClick={() => handleEditRecord(rec)}
                       disabled={isLoading}
                     >
                       <EditIcon />
