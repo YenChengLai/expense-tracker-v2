@@ -139,7 +139,7 @@ function Dashboard({ token, refreshKey }) {
                   </TableHead>
                   <TableBody>
                     {recentRecords.map((rec) => (
-                      <TableRow key={rec._id}>
+                      <TableRow key={rec.id}>
                         <TableCell>{rec.amount} {rec.currency}</TableCell>
                         <TableCell>{rec.category}</TableCell>
                         <TableCell>{rec.date}</TableCell>

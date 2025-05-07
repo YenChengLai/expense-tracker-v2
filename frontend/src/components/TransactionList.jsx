@@ -143,7 +143,7 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
         );
       }
       const updatedRecords = isEdit
-        ? records.map((rec) => (rec._id === recordId ? response.data : rec))
+        ? records.map((rec) => (rec.id === recordId ? response.data : rec))
         : [...records, response.data];
       setRecords(updatedRecords);
       applyFilterAndSort(updatedRecords, selectedCategories, selectedType, sortField, sortDirection, search);
@@ -162,12 +162,13 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
   const handleDeleteRecord = async () => {
     setIsLoading(true);
     setError("");
+    console.log("Deleting record with ID:", deleteId);
     try {
       await axios.delete(
         `http://127.0.0.1:8001/expense/${deleteId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const updatedRecords = records.filter((rec) => rec._id !== deleteId);
+      const updatedRecords = records.filter((rec) => rec.id !== deleteId);
       setRecords(updatedRecords);
       applyFilterAndSort(updatedRecords, selectedCategories, selectedType, sortField, sortDirection, search);
       setDeleteId(null);
@@ -284,7 +285,7 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
             </TableHead>
             <TableBody>
               {filteredRecords.map((rec) => (
-                <TableRow key={rec._id}>
+                <TableRow key={rec.id}>
                   <TableCell>{rec.amount} {rec.currency}</TableCell>
                   <TableCell>{rec.category}</TableCell>
                   <TableCell>{rec.type.charAt(0).toUpperCase() + rec.type.slice(1)}</TableCell>
@@ -298,7 +299,7 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
                       <EditIcon />
                     </IconButton>
                     <IconButton
-                      onClick={() => setDeleteId(rec._id)}
+                      onClick={() => setDeleteId(rec.id)}
                       disabled={isLoading}
                     >
                       <DeleteIcon />
@@ -315,7 +316,7 @@ function TransactionList({ token, refreshKey, onRecordUpdated }) {
             {editRecord && (
               <TransactionForm
                 token={token}
-                onRecordAdded={(payload) => handleRecordAction(payload, true, editRecord._id)}
+                onRecordAdded={(payload) => handleRecordAction(payload, true, editRecord.id)}
                 initialData={editRecord}
               />
             )}

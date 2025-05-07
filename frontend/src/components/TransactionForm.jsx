@@ -182,16 +182,18 @@ function TransactionForm({ token, onRecordAdded, onCategoryAdded, initialData = 
               required
             >
               {recentCategories.length > 0 && (
-                <>
-                  <MenuItem disabled>Recent</MenuItem>
-                  {recentCategories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat}
-                    </MenuItem>
-                  ))}
-                </>
+                <MenuItem disabled value="">
+                  Recent
+                </MenuItem>
               )}
-              <MenuItem disabled>All</MenuItem>
+              {recentCategories.map((cat) => (
+                <MenuItem key={cat} value={cat}>
+                  {cat}
+                </MenuItem>
+              ))}
+              <MenuItem disabled value="">
+                All
+              </MenuItem>
               {categories.map((cat) => (
                 <MenuItem key={cat} value={cat}>
                   {cat}

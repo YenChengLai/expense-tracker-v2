@@ -18,7 +18,7 @@ class Category(BaseModel):
 
 
 class ExpenseResponse(BaseModel):
-    _id: str
+    id: str
     userId: str
     groupId: str | None
     amount: float

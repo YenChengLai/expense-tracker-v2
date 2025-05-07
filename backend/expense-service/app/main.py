@@ -1,6 +1,7 @@
 import time
 from typing import Annotated
 
+from bson import ObjectId
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -33,7 +34,7 @@ async def create_expense(
     expense_dict["groupId"] = None
     expense_dict["epoch"] = int(time.time())
     result = await db.expense.insert_one(expense_dict)
-    expense_dict["_id"] = str(result.inserted_id)
+    expense_dict["id"] = str(result.inserted_id)
     expense_dict["userId"] = str(expense_dict["userId"])
     return ExpenseResponse(**expense_dict)
 
@@ -44,7 +45,21 @@ async def get_expenses(
     db: Annotated[AsyncIOMotorDatabase, Depends(get_db)],
 ) -> list[ExpenseResponse]:
     expenses = await db.expense.find({"userId": current_user.userId}).to_list(None)
-    return [ExpenseResponse(**{**exp, "_id": str(exp["_id"]), "userId": str(exp["userId"])}) for exp in expenses]
+    return [
+        ExpenseResponse(
+            id=str(exp["_id"]),
+            userId=str(exp["userId"]),
+            groupId=exp.get("groupId"),
+            amount=exp["amount"],
+            category=exp["category"],
+            date=exp["date"],
+            description=exp.get("description"),
+            type=exp["type"],
+            currency=exp["currency"],
+            epoch=exp["epoch"],
+        )
+        for exp in expenses
+    ]
 
 
 @app.delete("/expense/{expense_id}")
@@ -53,9 +68,7 @@ async def delete_expense(
     current_user: Annotated[TokenData, Depends(get_current_user)],
     db: Annotated[AsyncIOMotorDatabase, Depends(get_db)],
 ) -> dict[str, str]:
-    print(f"Deleting expense with ID: {expense_id}")
-    print(f"Current user ID: {current_user.userId}")
-    result = await db.expense.delete_one({"_id": expense_id, "userId": current_user.userId})
+    result = await db.expense.delete_one({"_id": ObjectId(expense_id), "userId": current_user.userId})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Expense not found or not owned by user")
     return {"message": "Expense deleted successfully"}
