@@ -17,6 +17,8 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     email: str
     userId: str
+    userName: str | None = None
+    image: str | None = None
     role: str
 
 

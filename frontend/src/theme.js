@@ -96,6 +96,22 @@ const baseTheme = {
                 },
             },
         },
+        MuiListItem: {
+            styleOverrides: {
+                root: {
+                    "&.Mui-selected": {
+                        backgroundColor: "#0044cc !important",
+                        color: "#ffffff !important",
+                        "& .MuiListItemIcon-root": {
+                            color: "#ffffff !important",
+                        },
+                    },
+                    "&:hover": {
+                        backgroundColor: "#f7fafc",
+                    },
+                },
+            },
+        },
     },
 };
 

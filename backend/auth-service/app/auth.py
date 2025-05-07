@@ -53,7 +53,9 @@ def verify_token(token: str, db: Database) -> UserResponse:
         if user is None:
             raise HTTPException(status_code=401, detail="User not found")
         role = "admin" if email == ADMIN_EMAIL else "user"
-        return UserResponse(email=email, userId=str(user["_id"]), role=role)
+        return UserResponse(
+            email=email, userId=str(user["_id"]), role=role, userName=user["name"], image=user.get("image")
+        )
     except JWTError as exc:
         raise HTTPException(status_code=401, detail="Could not validate token") from exc
 

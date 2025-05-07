@@ -13,7 +13,7 @@ import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import Sidebar from "./components/Sidebar";
 import Login from "./components/Login";
-import TransactionForm from "./components/TransactionForm";
+import Expenses from "./components/Expenses";
 import TransactionList from "./components/TransactionList";
 import Dashboard from "./components/Dashboard";
 import Settings from "./components/Settings";
@@ -30,6 +30,8 @@ function App() {
   const [mode, setMode] = useState("light");
   const [userRole, setUserRole] = useState(null);
   const theme = mode === "light" ? lightTheme : darkTheme;
+  const [userName, setUserName] = useState("");
+  const [userImage, setUserImage] = useState("");
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -39,6 +41,8 @@ function App() {
             params: { token },
           });
           setUserRole(response.data.role);
+          setUserName(response.data.userName || "Visitor"); // Updated field name to match UserResponse
+          setUserImage(response.data.image || "https://via.placeholder.com/40"); // Base64 image or placeholder
         } catch (err) {
           console.error("Failed to fetch user role:", err);
           setUserRole(null);
@@ -53,8 +57,6 @@ function App() {
   }, [token]);
 
   const handleRecordAdded = async (payload) => {
-    console.log("handleRecordAdded called with payload:", payload);
-    console.log("Token:", token);
     try {
       const response = await axios.post(
         "http://127.0.0.1:8001/expense",
@@ -66,7 +68,6 @@ function App() {
           },
         }
       );
-      console.log("POST /expense response:", response.data);
       setRefreshRecords((prev) => prev + 1);
       setSnackbar({ open: true, message: "Record added successfully!", severity: "success" });
       return response.data;
@@ -111,59 +112,66 @@ function App() {
       <CssBaseline />
       <Router>
         {token ? (
-          <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "background.default" }}>
-            <Sidebar role={userRole} />
+          <Box sx={{ display: "flex", minHeight: "100vh" }}>
+            <Sidebar role={userRole} userName={userName} userImage={userImage} />
             <Box
               component="main"
-              sx={{ flexGrow: 1, width: { sm: `calc(100% - 240px)` }, p: 3 }}
+              sx={{ flexGrow: 1, width: { sm: `calc(100% - 240px)` }, p: 0 }}
             >
-              <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-                <Toolbar>
-                  <Typography variant="h6" component="div" sx={{ flexGrow: 1, color: "text.primary" }}>
-                    Expense Tracker
-                  </Typography>
-                  <Button
-                    color="inherit"
-                    onClick={() => setMode(mode === "light" ? "dark" : "light")}
-                    startIcon={mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
-                    sx={{ mr: 1, color: "text.primary" }}
-                  >
-                    {mode === "light" ? "Dark" : "Light"} Mode
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    color="inherit"
-                    startIcon={<LogoutIcon />}
-                    onClick={handleLogout}
-                    sx={{ color: "text.primary", borderColor: "text.primary" }}
-                  >
-                    Logout
-                  </Button>
+              <AppBar
+                position="fixed"
+                sx={{
+                  zIndex: (theme) => theme.zIndex.drawer + 1,
+                  backgroundColor: theme.palette.background.paper,
+                  boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                <Toolbar sx={{ justifyContent: "space-between" }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <img
+                      src={userImage}
+                      alt="User Profile"
+                      style={{ borderRadius: "50%", width: "40px", height: "40px", marginRight: "10px" }}
+                    />
+                    <Typography variant="body2" sx={{ color: theme.palette.text.primary }}>
+                      {userName}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Button
+                      color="inherit"
+                      onClick={() => setMode(mode === "light" ? "dark" : "light")}
+                      startIcon={mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
+                      sx={{ mr: 1, color: theme.palette.text.secondary, "&:hover": { color: theme.palette.text.primary } }}
+                    >
+                      {mode === "light" ? "Dark" : "Light"} Mode
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      color="inherit"
+                      startIcon={<LogoutIcon />}
+                      onClick={handleLogout}
+                      sx={{ color: theme.palette.text.secondary, borderColor: theme.palette.divider, "&:hover": { color: theme.palette.primary.main, borderColor: theme.palette.primary.main } }}
+                    >
+                      Logout
+                    </Button>
+                  </Box>
                 </Toolbar>
               </AppBar>
               <Toolbar />
-              <Box sx={{ p: 3 }}>
+              <Box sx={{ p: 3, backgroundColor: theme.palette.background.default }}>
                 <Routes>
                   <Route
                     path="/"
                     element={<Dashboard token={token} refreshKey={refreshRecords} />}
                   />
                   <Route
-                    path="/add"
+                    path="/expenses"
                     element={
-                      <TransactionForm
+                      <Expenses
                         token={token}
                         onRecordAdded={handleRecordAdded}
                         onCategoryAdded={handleCategoryAdded}
-                      />
-                    }
-                  />
-                  <Route
-                    path="/list"
-                    element={
-                      <TransactionList
-                        token={token}
-                        refreshKey={refreshRecords}
                         onRecordUpdated={handleRecordUpdated}
                       />
                     }

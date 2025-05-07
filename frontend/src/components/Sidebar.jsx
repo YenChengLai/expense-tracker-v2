@@ -1,14 +1,17 @@
-import { Drawer, List, ListItem, ListItemIcon, ListItemText, Toolbar, Typography, Divider } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Drawer, List, ListItem, ListItemIcon, ListItemText, Toolbar, Typography, Box } from "@mui/material";
+import { Link, useLocation } from "react-router-dom";
 import InsightsIcon from "@mui/icons-material/Insights";
-import AddIcon from "@mui/icons-material/Add";
 import ListIcon from "@mui/icons-material/List";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PeopleIcon from "@mui/icons-material/People";
 
 const drawerWidth = 240;
 
-function Sidebar({ role }) {
+function Sidebar({ role, userName, userImage }) {
+  const location = useLocation();
+  console.log("Sidebar re-rendered with location:", location.pathname); // Debug re-render
+  console.log("userImage:", userImage); // Debug the received image
+
   return (
     <Drawer
       sx={{
@@ -17,86 +20,116 @@ function Sidebar({ role }) {
         "& .MuiDrawer-paper": {
           width: drawerWidth,
           boxSizing: "border-box",
-          backgroundColor: "background.paper",
-          borderRight: "1px solid",
-          borderColor: "divider",
+          backgroundColor: "#edf2f7",
+          color: "#2d3748",
+          borderRight: `1px solid ${"#e2e8f0"}`,
         },
       }}
       variant="permanent"
       anchor="left"
     >
-      <Toolbar>
-        <Typography variant="h6" noWrap color="text.primary">
-          Expense Tracker
-        </Typography>
+      <Toolbar sx={{ justifyContent: "center" }}>
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <img
+            src={userImage || "https://via.placeholder.com/40"}
+            alt="User Profile"
+            style={{ borderRadius: "50%", width: "40px", height: "40px", marginRight: "10px" }}
+            onError={(e) => { e.target.src = "https://via.placeholder.com/40"; console.log("Image load failed, using placeholder"); }}
+          />
+          <Typography variant="h6" noWrap color="#2d3748">
+            {userName || "User"}
+          </Typography>
+        </Box>
       </Toolbar>
-      <Divider />
       <List>
         <ListItem
           component={Link}
           to="/"
+          selected={location.pathname === "/"}
           sx={{
-            "&:hover": { backgroundColor: "action.hover" },
-            "&.Mui-selected": { backgroundColor: "action.selected" },
+            "& .MuiListItemIcon-root": {
+              color: location.pathname === "/" ? "#33ccff" : "#00c4cc",
+            },
+            "& .MuiListItemText-primary": {
+              color: location.pathname === "/" ? "#33ccff" : "#2d3748",
+            },
+          }}
+          style={{
+            backgroundColor: location.pathname === "/" ? "#003087 !important" : "transparent",
+            transition: "background-color 0.3s ease",
           }}
         >
-          <ListItemIcon sx={{ color: "text.primary" }}>
+          <ListItemIcon>
             <InsightsIcon />
           </ListItemIcon>
-          <ListItemText primary="Dashboard" primaryTypographyProps={{ color: "text.primary" }} />
+          <ListItemText primary="Dashboard" />
         </ListItem>
         <ListItem
           component={Link}
-          to="/add"
+          to="/expenses"
+          selected={location.pathname === "/expenses"}
           sx={{
-            "&:hover": { backgroundColor: "action.hover" },
-            "&.Mui-selected": { backgroundColor: "action.selected" },
+            "& .MuiListItemIcon-root": {
+              color: location.pathname === "/expenses" ? "#33ccff" : "#00c4cc",
+            },
+            "& .MuiListItemText-primary": {
+              color: location.pathname === "/expenses" ? "#33ccff" : "#2d3748",
+            },
+          }}
+          style={{
+            backgroundColor: location.pathname === "/expenses" ? "#003087 !important" : "transparent",
+            transition: "background-color 0.3s ease",
           }}
         >
-          <ListItemIcon sx={{ color: "text.primary" }}>
-            <AddIcon />
-          </ListItemIcon>
-          <ListItemText primary="Add a Record" primaryTypographyProps={{ color: "text.primary" }} />
-        </ListItem>
-        <ListItem
-          component={Link}
-          to="/list"
-          sx={{
-            "&:hover": { backgroundColor: "action.hover" },
-            "&.Mui-selected": { backgroundColor: "action.selected" },
-          }}
-        >
-          <ListItemIcon sx={{ color: "text.primary" }}>
+          <ListItemIcon>
             <ListIcon />
           </ListItemIcon>
-          <ListItemText primary="Record List" primaryTypographyProps={{ color: "text.primary" }} />
+          <ListItemText primary="Expenses" />
         </ListItem>
         <ListItem
           component={Link}
           to="/settings"
+          selected={location.pathname === "/settings"}
           sx={{
-            "&:hover": { backgroundColor: "action.hover" },
-            "&.Mui-selected": { backgroundColor: "action.selected" },
+            "& .MuiListItemIcon-root": {
+              color: location.pathname === "/settings" ? "#33ccff" : "#00c4cc",
+            },
+            "& .MuiListItemText-primary": {
+              color: location.pathname === "/settings" ? "#33ccff" : "#2d3748",
+            },
+          }}
+          style={{
+            backgroundColor: location.pathname === "/settings" ? "#003087 !important" : "transparent",
+            transition: "background-color 0.3s ease",
           }}
         >
-          <ListItemIcon sx={{ color: "text.primary" }}>
+          <ListItemIcon>
             <SettingsIcon />
           </ListItemIcon>
-          <ListItemText primary="Settings" primaryTypographyProps={{ color: "text.primary" }} />
+          <ListItemText primary="Settings" />
         </ListItem>
         {role === "admin" && (
           <ListItem
             component={Link}
             to="/admin/approvals"
+            selected={location.pathname === "/admin/approvals"}
             sx={{
-              "&:hover": { backgroundColor: "action.hover" },
-              "&.Mui-selected": { backgroundColor: "action.selected" },
+              "& .MuiListItemIcon-root": {
+                color: location.pathname === "/admin/approvals" ? "#33ccff" : "#00c4cc",
+              },
+              "& .MuiListItemText-primary": {
+                color: location.pathname === "/admin/approvals" ? "#33ccff" : "#2d3748",
+              },
+            }}
+            style={{
+              backgroundColor: location.pathname === "/admin/approvals" ? "#003087 !important" : "transparent",
+              transition: "background-color 0.3s ease",
             }}
           >
-            <ListItemIcon sx={{ color: "text.primary" }}>
+            <ListItemIcon>
               <PeopleIcon />
             </ListItemIcon>
-            <ListItemText primary="User Approvals" primaryTypographyProps={{ color: "text.primary" }} />
+            <ListItemText primary="User Approvals" />
           </ListItem>
         )}
       </List>

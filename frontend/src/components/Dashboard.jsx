@@ -66,33 +66,9 @@ function Dashboard({ token, refreshKey }) {
           <Typography variant="h5" gutterBottom>
             Dashboard
           </Typography>
-          {isLoading && (
-            <Box display="flex" justifyContent="center" my={2}>
-              <CircularProgress />
-            </Box>
-          )}
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           {!isLoading && (
             <Box>
-              <Box sx={{ mb: 4 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  component={Link}
-                  to="/add"
-                  sx={{ mr: 2 }}
-                >
-                  Add Record
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  component={Link}
-                  to="/list"
-                >
-                  View Records
-                </Button>
-              </Box>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <Typography variant="subtitle1" gutterBottom>

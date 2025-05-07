@@ -10,7 +10,7 @@ class ExpenseCreate(BaseModel):
     date: str
     description: str | None = None
     type: str  # "expense" or "income"
-    currency: str  # e.g., "USD", "EUR"
+    currency: str = "USD"  # e.g., "USD", "EUR"
 
 
 class Category(BaseModel):
