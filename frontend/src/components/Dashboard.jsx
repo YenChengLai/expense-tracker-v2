@@ -34,7 +34,10 @@ function Dashboard({ token, refreshKey }) {
           params: { limit: 5 },
         });
         const records = response.data;
-        const total = records.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+        const total = records.reduce(
+          (sum, rec) => sum + parseFloat(rec.amount),
+          0
+        );
         const byCategory = records.reduce((acc, rec) => {
           const cat = rec.category;
           if (!acc[cat]) acc[cat] = { count: 0, total: 0 };
@@ -45,7 +48,9 @@ function Dashboard({ token, refreshKey }) {
         setStats({ total, byCategory });
         setRecentRecords(records.slice(0, 5));
       } catch (err) {
-        setError(err.response?.data?.detail || "Failed to load dashboard data.");
+        setError(
+          err.response?.data?.detail || "Failed to load dashboard data."
+        );
       } finally {
         setIsLoading(false);
       }
@@ -53,20 +58,28 @@ function Dashboard({ token, refreshKey }) {
     fetchRecords();
   }, [token, refreshKey]);
 
-  const chartData = Object.entries(stats.byCategory).map(([category, data]) => ({
-    id: category,
-    value: data.total,
-    label: category,
-  }));
+  const chartData = Object.entries(stats.byCategory).map(
+    ([category, data]) => ({
+      id: category,
+      value: data.total,
+      label: category,
+    })
+  );
 
   return (
-    <Box sx={{ p: 3, backgroundColor: "background.default", minHeight: "100vh" }}>
+    <Box
+      sx={{ p: 3, backgroundColor: "background.default", minHeight: "100vh" }}
+    >
       <Card>
         <CardContent>
           <Typography variant="h5" gutterBottom>
             Dashboard
           </Typography>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
           {!isLoading && (
             <Box>
               <Grid container spacing={3}>
@@ -78,11 +91,14 @@ function Dashboard({ token, refreshKey }) {
                     Records by Category:
                   </Typography>
                   {Object.entries(stats.byCategory).length === 0 ? (
-                    <Typography color="text.secondary">No records yet.</Typography>
+                    <Typography color="text.secondary">
+                      No records yet.
+                    </Typography>
                   ) : (
                     Object.entries(stats.byCategory).map(([category, data]) => (
                       <Typography key={category} variant="body2" sx={{ mb: 1 }}>
-                        {category}: {data.count} record(s), ${data.total.toFixed(2)}
+                        {category}: {data.count} record(s), $
+                        {data.total.toFixed(2)}
                       </Typography>
                     ))
                   )}
@@ -104,7 +120,9 @@ function Dashboard({ token, refreshKey }) {
                   Recent Transactions
                 </Typography>
                 {recentRecords.length === 0 ? (
-                  <Typography color="text.secondary">No recent transactions.</Typography>
+                  <Typography color="text.secondary">
+                    No recent transactions.
+                  </Typography>
                 ) : (
                   <Table>
                     <TableHead>
@@ -118,7 +136,9 @@ function Dashboard({ token, refreshKey }) {
                     <TableBody>
                       {recentRecords.map((rec) => (
                         <TableRow key={rec.id}>
-                          <TableCell>{rec.amount} {rec.currency}</TableCell>
+                          <TableCell>
+                            {rec.amount} {rec.currency}
+                          </TableCell>
                           <TableCell>{rec.category}</TableCell>
                           <TableCell>{rec.date}</TableCell>
                           <TableCell>{rec.description || "-"}</TableCell>

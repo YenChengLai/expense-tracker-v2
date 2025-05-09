@@ -43,8 +43,17 @@ async def create_expense(
 async def get_expenses(
     current_user: Annotated[TokenData, Depends(get_current_user)],
     db: Annotated[AsyncIOMotorDatabase, Depends(get_db)],
+    date_gte: str | None = None,
+    date_lte: str | None = None,
 ) -> list[Expense]:
-    expenses = await db.expense.find({"userId": current_user.userId}).to_list(None)
+    query = {"userId": current_user.userId}
+    if date_gte:
+        query["date"] = query.get("date", {})
+        query["date"].update({"$gte": date_gte})
+    if date_lte:
+        query["date"] = query.get("date", {})
+        query["date"].update({"$gte": date_gte})
+    expenses = await db.expense.find(query).to_list(None)
     return [
         Expense(
             id=str(exp["_id"]),

@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -14,19 +19,23 @@ import Brightness7Icon from "@mui/icons-material/Brightness7";
 import Sidebar from "./components/Sidebar";
 import Login from "./components/Login";
 import Expenses from "./components/Expenses";
-import TransactionList from "./components/TransactionList";
 import Dashboard from "./components/Dashboard";
 import Settings from "./components/Settings";
 import ForgotPassword from "./components/ForgotPassword";
 import Signup from "./components/Signup";
 import AdminApproval from "./components/AdminApproval";
+import Calendar from "./components/Calendar";
 import axios from "axios";
 import { lightTheme, darkTheme } from "./theme";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [refreshRecords, setRefreshRecords] = useState(0);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [mode, setMode] = useState("light");
   const [userRole, setUserRole] = useState(null);
   const theme = mode === "light" ? lightTheme : darkTheme;
@@ -37,12 +46,15 @@ function App() {
     const fetchUserRole = async () => {
       if (token) {
         try {
-          const response = await axios.get("http://127.0.0.1:8002/verify-token", {
-            params: { token },
-          });
+          const response = await axios.get(
+            "http://127.0.0.1:8002/verify-token",
+            {
+              params: { token },
+            }
+          );
           setUserRole(response.data.role);
-          setUserName(response.data.userName || "Visitor"); // Updated field name to match UserResponse
-          setUserImage(response.data.image || "https://via.placeholder.com/40"); // Base64 image or placeholder
+          setUserName(response.data.userName || "Visitor");
+          setUserImage(response.data.image || "https://via.placeholder.com/40");
         } catch (err) {
           console.error("Failed to fetch user role:", err);
           setUserRole(null);
@@ -69,7 +81,11 @@ function App() {
         }
       );
       setRefreshRecords((prev) => prev + 1);
-      setSnackbar({ open: true, message: "Record added successfully!", severity: "success" });
+      setSnackbar({
+        open: true,
+        message: "Record added successfully!",
+        severity: "success",
+      });
       return response.data;
     } catch (err) {
       console.error("Error in POST /expense:", {
@@ -78,13 +94,20 @@ function App() {
         status: err.response?.status,
         config: err.config,
       });
-      throw new Error(err.response?.data?.detail || "Failed to add record. Please check your connection or login again.");
+      throw new Error(
+        err.response?.data?.detail ||
+          "Failed to add record. Please check your connection or login again."
+      );
     }
   };
 
   const handleCategoryAdded = (category) => {
     setRefreshRecords((prev) => prev + 1);
-    setSnackbar({ open: true, message: `Category '${category}' added successfully!`, severity: "success" });
+    setSnackbar({
+      open: true,
+      message: `Category '${category}' added successfully!`,
+      severity: "success",
+    });
   };
 
   const handleRecordUpdated = (message) => {
@@ -113,7 +136,11 @@ function App() {
       <Router>
         {token ? (
           <Box sx={{ display: "flex", minHeight: "100vh" }}>
-            <Sidebar role={userRole} userName={userName} userImage={userImage} />
+            <Sidebar
+              role={userRole}
+              userName={userName}
+              userImage={userImage}
+            />
             <Box
               component="main"
               sx={{ flexGrow: 1, width: { sm: `calc(100% - 240px)` }, p: 0 }}
@@ -131,18 +158,38 @@ function App() {
                     <img
                       src={userImage}
                       alt="User Profile"
-                      style={{ borderRadius: "50%", width: "40px", height: "40px", marginRight: "10px" }}
+                      style={{
+                        borderRadius: "50%",
+                        width: "40px",
+                        height: "40px",
+                        marginRight: "10px",
+                      }}
                     />
-                    <Typography variant="body2" sx={{ color: theme.palette.text.primary }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: theme.palette.text.primary }}
+                    >
                       {userName}
                     </Typography>
                   </Box>
                   <Box>
                     <Button
                       color="inherit"
-                      onClick={() => setMode(mode === "light" ? "dark" : "light")}
-                      startIcon={mode === "light" ? <Brightness4Icon /> : <Brightness7Icon />}
-                      sx={{ mr: 1, color: theme.palette.text.secondary, "&:hover": { color: theme.palette.text.primary } }}
+                      onClick={() =>
+                        setMode(mode === "light" ? "dark" : "light")
+                      }
+                      startIcon={
+                        mode === "light" ? (
+                          <Brightness4Icon />
+                        ) : (
+                          <Brightness7Icon />
+                        )
+                      }
+                      sx={{
+                        mr: 1,
+                        color: theme.palette.text.secondary,
+                        "&:hover": { color: theme.palette.text.primary },
+                      }}
                     >
                       {mode === "light" ? "Dark" : "Light"} Mode
                     </Button>
@@ -151,7 +198,14 @@ function App() {
                       color="inherit"
                       startIcon={<LogoutIcon />}
                       onClick={handleLogout}
-                      sx={{ color: theme.palette.text.secondary, borderColor: theme.palette.divider, "&:hover": { color: theme.palette.primary.main, borderColor: theme.palette.primary.main } }}
+                      sx={{
+                        color: theme.palette.text.secondary,
+                        borderColor: theme.palette.divider,
+                        "&:hover": {
+                          color: theme.palette.primary.main,
+                          borderColor: theme.palette.primary.main,
+                        },
+                      }}
                     >
                       Logout
                     </Button>
@@ -159,11 +213,15 @@ function App() {
                 </Toolbar>
               </AppBar>
               <Toolbar />
-              <Box sx={{ p: 3, backgroundColor: theme.palette.background.default }}>
+              <Box
+                sx={{ p: 3, backgroundColor: theme.palette.background.default }}
+              >
                 <Routes>
                   <Route
                     path="/"
-                    element={<Dashboard token={token} refreshKey={refreshRecords} />}
+                    element={
+                      <Dashboard token={token} refreshKey={refreshRecords} />
+                    }
                   />
                   <Route
                     path="/expenses"
@@ -190,9 +248,10 @@ function App() {
                     element={<AdminApproval token={token} />}
                   />
                   <Route
-                    path="*"
-                    element={<Navigate to="/" />}
+                    path="/calendar"
+                    element={<Calendar token={token} />}
                   />
+                  <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </Box>
             </Box>
@@ -207,14 +266,8 @@ function App() {
               path="/forgot-password"
               element={<ForgotPassword theme={theme} />}
             />
-            <Route
-              path="/signup"
-              element={<Signup theme={theme} />}
-            />
-            <Route
-              path="*"
-              element={<Navigate to="/login" />}
-            />
+            <Route path="/signup" element={<Signup theme={theme} />} />
+            <Route path="*" element={<Navigate to="/login" />} />
           </Routes>
         )}
         <Snackbar
@@ -223,7 +276,11 @@ function App() {
           onClose={handleCloseSnackbar}
           anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         >
-          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbar.severity}
+            sx={{ width: "100%" }}
+          >
             {snackbar.message}
           </Alert>
         </Snackbar>

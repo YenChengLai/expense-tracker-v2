@@ -54,7 +54,10 @@ export default function AdminApproval({ token }) {
       setSuccess(response.data.message);
       fetchPendingUsers();
     } catch (err) {
-      setError(err.response?.data?.detail || `Failed to ${approve ? "approve" : "reject"} user.`);
+      setError(
+        err.response?.data?.detail ||
+          `Failed to ${approve ? "approve" : "reject"} user.`
+      );
     }
   };
 
@@ -63,20 +66,32 @@ export default function AdminApproval({ token }) {
   }, []);
 
   return (
-    <Box sx={{ p: 3, backgroundColor: "background.default", minHeight: "100vh" }}>
+    <Box
+      sx={{ p: 3, backgroundColor: "background.default", minHeight: "100vh" }}
+    >
       <Card>
         <CardContent>
           <Typography variant="h5" gutterBottom>
             Admin Approval
           </Typography>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-          {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {success}
+            </Alert>
+          )}
           {loading ? (
             <Box display="flex" justifyContent="center">
               <CircularProgress />
             </Box>
           ) : pendingUsers.length === 0 ? (
-            <Typography color="text.secondary">No pending registrations.</Typography>
+            <Typography color="text.secondary">
+              No pending registrations.
+            </Typography>
           ) : (
             <Table>
               <TableHead>
@@ -90,7 +105,9 @@ export default function AdminApproval({ token }) {
                 {pendingUsers.map((user) => (
                   <TableRow key={user.userId}>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>{new Date(user.createdAt).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {new Date(user.createdAt).toLocaleString()}
+                    </TableCell>
                     <TableCell>
                       <Button
                         variant="contained"

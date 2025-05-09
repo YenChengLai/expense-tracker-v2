@@ -1,9 +1,19 @@
-import { Drawer, List, ListItem, ListItemIcon, ListItemText, Toolbar, Typography, Box } from "@mui/material";
+import {
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Toolbar,
+  Typography,
+  Box,
+} from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import InsightsIcon from "@mui/icons-material/Insights";
 import ListIcon from "@mui/icons-material/List";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PeopleIcon from "@mui/icons-material/People";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 const drawerWidth = 240;
 
@@ -18,9 +28,9 @@ function Sidebar({ role, userName, userImage }) {
         "& .MuiDrawer-paper": {
           width: drawerWidth,
           boxSizing: "border-box",
-          backgroundColor: (theme) => theme.palette.background.paper, // Use theme background
-          color: (theme) => theme.palette.text.primary, // Use theme text color
-          borderRight: (theme) => `1px solid ${theme.palette.divider}`, // Use theme divider
+          backgroundColor: (theme) => theme.palette.background.paper,
+          color: (theme) => theme.palette.text.primary,
+          borderRight: (theme) => `1px solid ${theme.palette.divider}`,
         },
       }}
       variant="permanent"
@@ -31,10 +41,18 @@ function Sidebar({ role, userName, userImage }) {
           <img
             src={userImage || "https://via.placeholder.com/40"}
             alt="User Profile"
-            style={{ borderRadius: "50%", width: "40px", height: "40px", marginRight: "10px" }}
-            // onError={(e) => { e.target.src = "https://via.placeholder.com/40"; console.log("Image load failed, using placeholder"); }}
+            style={{
+              borderRadius: "50%",
+              width: "40px",
+              height: "40px",
+              marginRight: "10px",
+            }}
           />
-          <Typography variant="h6" noWrap sx={{ color: (theme) => theme.palette.text.primary }}>
+          <Typography
+            variant="h6"
+            noWrap
+            sx={{ color: (theme) => theme.palette.text.primary }}
+          >
             {userName || "User"}
           </Typography>
         </Box>
@@ -46,14 +64,21 @@ function Sidebar({ role, userName, userImage }) {
           selected={location.pathname === "/"}
           sx={{
             "& .MuiListItemIcon-root": {
-              color: location.pathname === "/" ? "#33ccff" : (theme) => theme.palette.primary.main,
+              color:
+                location.pathname === "/"
+                  ? "#33ccff"
+                  : (theme) => theme.palette.primary.main,
             },
             "& .MuiListItemText-primary": {
-              color: location.pathname === "/" ? "#33ccff" : (theme) => theme.palette.text.primary,
+              color:
+                location.pathname === "/"
+                  ? "#33ccff"
+                  : (theme) => theme.palette.text.primary,
             },
           }}
           style={{
-            backgroundColor: location.pathname === "/" ? "#003087 !important" : "transparent",
+            backgroundColor:
+              location.pathname === "/" ? "#003087 !important" : "transparent",
             transition: "background-color 0.3s ease",
           }}
         >
@@ -68,14 +93,23 @@ function Sidebar({ role, userName, userImage }) {
           selected={location.pathname === "/expenses"}
           sx={{
             "& .MuiListItemIcon-root": {
-              color: location.pathname === "/expenses" ? "#33ccff" : (theme) => theme.palette.primary.main,
+              color:
+                location.pathname === "/expenses"
+                  ? "#33ccff"
+                  : (theme) => theme.palette.primary.main,
             },
             "& .MuiListItemText-primary": {
-              color: location.pathname === "/expenses" ? "#33ccff" : (theme) => theme.palette.text.primary,
+              color:
+                location.pathname === "/expenses"
+                  ? "#33ccff"
+                  : (theme) => theme.palette.text.primary,
             },
           }}
           style={{
-            backgroundColor: location.pathname === "/expenses" ? "#003087 !important" : "transparent",
+            backgroundColor:
+              location.pathname === "/expenses"
+                ? "#003087 !important"
+                : "transparent",
             transition: "background-color 0.3s ease",
           }}
         >
@@ -86,25 +120,34 @@ function Sidebar({ role, userName, userImage }) {
         </ListItem>
         <ListItem
           component={Link}
-          to="/settings"
-          selected={location.pathname === "/settings"}
+          to="/calendar"
+          selected={location.pathname === "/calendar"}
           sx={{
             "& .MuiListItemIcon-root": {
-              color: location.pathname === "/settings" ? "#33ccff" : (theme) => theme.palette.primary.main,
+              color:
+                location.pathname === "/calendar"
+                  ? "#33ccff"
+                  : (theme) => theme.palette.primary.main,
             },
             "& .MuiListItemText-primary": {
-              color: location.pathname === "/settings" ? "#33ccff" : (theme) => theme.palette.text.primary,
+              color:
+                location.pathname === "/calendar"
+                  ? "#33ccff"
+                  : (theme) => theme.palette.text.primary,
             },
           }}
           style={{
-            backgroundColor: location.pathname === "/settings" ? "#003087 !important" : "transparent",
+            backgroundColor:
+              location.pathname === "/calendar"
+                ? "#003087 !important"
+                : "transparent",
             transition: "background-color 0.3s ease",
           }}
         >
           <ListItemIcon>
-            <SettingsIcon />
+            <CalendarTodayIcon />
           </ListItemIcon>
-          <ListItemText primary="Settings" />
+          <ListItemText primary="Calendar" />
         </ListItem>
         {role === "admin" && (
           <ListItem
@@ -113,14 +156,23 @@ function Sidebar({ role, userName, userImage }) {
             selected={location.pathname === "/admin/approvals"}
             sx={{
               "& .MuiListItemIcon-root": {
-                color: location.pathname === "/admin/approvals" ? "#33ccff" : (theme) => theme.palette.primary.main,
+                color:
+                  location.pathname === "/admin/approvals"
+                    ? "#33ccff"
+                    : (theme) => theme.palette.primary.main,
               },
               "& .MuiListItemText-primary": {
-                color: location.pathname === "/admin/approvals" ? "#33ccff" : (theme) => theme.palette.text.primary,
+                color:
+                  location.pathname === "/admin/approvals"
+                    ? "#33ccff"
+                    : (theme) => theme.palette.text.primary,
               },
             }}
             style={{
-              backgroundColor: location.pathname === "/admin/approvals" ? "#003087 !important" : "transparent",
+              backgroundColor:
+                location.pathname === "/admin/approvals"
+                  ? "#003087 !important"
+                  : "transparent",
               transition: "background-color 0.3s ease",
             }}
           >
@@ -130,6 +182,37 @@ function Sidebar({ role, userName, userImage }) {
             <ListItemText primary="User Approvals" />
           </ListItem>
         )}
+        <ListItem
+          component={Link}
+          to="/settings"
+          selected={location.pathname === "/settings"}
+          sx={{
+            "& .MuiListItemIcon-root": {
+              color:
+                location.pathname === "/settings"
+                  ? "#33ccff"
+                  : (theme) => theme.palette.primary.main,
+            },
+            "& .MuiListItemText-primary": {
+              color:
+                location.pathname === "/settings"
+                  ? "#33ccff"
+                  : (theme) => theme.palette.text.primary,
+            },
+          }}
+          style={{
+            backgroundColor:
+              location.pathname === "/settings"
+                ? "#003087 !important"
+                : "transparent",
+            transition: "background-color 0.3s ease",
+          }}
+        >
+          <ListItemIcon>
+            <SettingsIcon />
+          </ListItemIcon>
+          <ListItemText primary="Settings" />
+        </ListItem>
       </List>
     </Drawer>
   );

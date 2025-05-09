@@ -11,7 +11,6 @@ import {
   TableHead,
   Button,
   Box,
-  Collapse,
   TextField,
   FormControl,
   InputLabel,
@@ -21,6 +20,10 @@ import {
   Alert,
   IconButton,
   Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -44,8 +47,14 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
   const [error, setError] = useState("");
   const [categoryError, setCategoryError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [editingId, setEditingId] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   useEffect(() => {
     const fetchTransactions = async () => {
@@ -67,14 +76,16 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
           headers: { Authorization: `Bearer ${token}` },
           params: { show_universal: true },
         });
-        setCategories(response.data.map(cat => cat.name) || []);
+        setCategories(response.data.map((cat) => cat.name) || []);
       } catch (err) {
         setCategoryError("Failed to load categories. Please try again.");
       }
     };
     fetchTransactions();
     fetchCategories();
-    setRecentCategories(JSON.parse(localStorage.getItem("recentCategories") || "[]"));
+    setRecentCategories(
+      JSON.parse(localStorage.getItem("recentCategories") || "[]")
+    );
   }, [token]);
 
   const handleCategoryChange = (event) => {
@@ -115,7 +126,13 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.category || formData.category === "__add_new" || !formData.amount || !formData.type || !formData.date) {
+    if (
+      !formData.category ||
+      formData.category === "__add_new" ||
+      !formData.amount ||
+      !formData.type ||
+      !formData.date
+    ) {
       setError("All fields are required.");
       return;
     }
@@ -135,11 +152,17 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
       };
       let response;
       if (editingId) {
-        response = await axios.put(`http://127.0.0.1:8001/expense/${editingId}`, payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        response = await axios.put(
+          `http://127.0.0.1:8001/expense/${editingId}`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         onRecordUpdated(`Record with ID ${editingId} updated successfully!`);
-        setTransactions(transactions.map(tx => tx.id === editingId ? response.data : tx));
+        setTransactions(
+          transactions.map((tx) => (tx.id === editingId ? response.data : tx))
+        );
       } else {
         response = await onRecordAdded(payload);
         setTransactions([...transactions, response]);
@@ -150,7 +173,14 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
         localStorage.setItem("recentCategories", JSON.stringify(updatedRecent));
         setRecentCategories(updatedRecent);
       }
-      setFormData({ id: null, amount: "", category: "", type: "", date: "", description: "" });
+      setFormData({
+        id: null,
+        amount: "",
+        category: "",
+        type: "",
+        date: "",
+        description: "",
+      });
       setFormOpen(false);
       setEditingId(null);
     } catch (err) {
@@ -180,12 +210,48 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       setTransactions(transactions.filter((tx) => tx.id !== id));
-      setSnackbar({ open: true, message: "Record deleted successfully!", severity: "success" });
+      setSnackbar({
+        open: true,
+        message: "Record deleted successfully!",
+        severity: "success",
+      });
     } catch (err) {
       setError("Failed to delete record. Please try again.");
     } finally {
       setIsLoading(false);
     }
+    setDeleteConfirmOpen(false);
+    setDeleteId(null);
+  };
+
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setFormOpen(false);
+    // Delay state reset to prevent title flash
+    setTimeout(() => {
+      setFormData({
+        id: null,
+        amount: "",
+        category: "",
+        type: "",
+        date: "",
+        description: "",
+      });
+      setEditingId(null);
+      setError("");
+      setCategoryError("");
+      setShowNewCategoryInput(false);
+      setNewCategory("");
+    }, 100);
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    setDeleteConfirmOpen(false);
+    setDeleteId(null);
   };
 
   const handleCloseSnackbar = () => {
@@ -194,21 +260,21 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
 
   return (
     <Box sx={{ p: 3 }}>
+      <Typography variant="h5" gutterBottom>
+        Expenses
+      </Typography>
+      {(error || categoryError) && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error || categoryError}
+        </Alert>
+      )}
+      {isLoading && (
+        <Box display="flex" justifyContent="center" mb={2}>
+          <CircularProgress />
+        </Box>
+      )}
       <Card sx={{ boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}>
         <CardContent>
-          <Typography variant="h5" gutterBottom>
-            Expenses
-          </Typography>
-          {(error || categoryError) && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error || categoryError}
-            </Alert>
-          )}
-          {isLoading && (
-            <Box display="flex" justifyContent="center" mb={2}>
-              <CircularProgress />
-            </Box>
-          )}
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow>
@@ -223,7 +289,9 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
             <TableBody>
               {transactions.map((tx) => (
                 <TableRow key={tx.id}>
-                  <TableCell sx={{ color: tx.type === "Expense" ? "red" : "green" }}>
+                  <TableCell
+                    sx={{ color: tx.type === "Expense" ? "red" : "green" }}
+                  >
                     {`${tx.amount} USD`}
                   </TableCell>
                   <TableCell>{tx.category}</TableCell>
@@ -231,10 +299,18 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
                   <TableCell>{tx.date}</TableCell>
                   <TableCell>{tx.description || "-"}</TableCell>
                   <TableCell>
-                    <IconButton color="primary" aria-label="edit" onClick={() => handleEdit(tx)}>
+                    <IconButton
+                      color="primary"
+                      aria-label="edit"
+                      onClick={() => handleEdit(tx)}
+                    >
                       <EditIcon />
                     </IconButton>
-                    <IconButton color="error" aria-label="delete" onClick={() => handleDelete(tx.id)}>
+                    <IconButton
+                      color="error"
+                      aria-label="delete"
+                      onClick={() => handleDeleteClick(tx.id)}
+                    >
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
@@ -251,133 +327,194 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
           >
             Add Record
           </Button>
-          <Collapse in={formOpen}>
-            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-              <TextField
-                label="Amount"
-                type="number"
-                fullWidth
-                margin="normal"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                required
-                disabled={isLoading}
-              />
-              <FormControl fullWidth margin="normal" disabled={isLoading}>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={formData.category || ""}
-                  label="Category"
-                  onChange={handleCategoryChange}
-                  required
-                >
-                  {recentCategories.length > 0 && (
-                    <MenuItem disabled value="">
-                      <em>Recent</em>
-                    </MenuItem>
-                  )}
-                  {recentCategories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat}
-                    </MenuItem>
-                  ))}
-                  <MenuItem disabled value="">
-                    <em>All</em>
-                  </MenuItem>
-                  {categories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat}
-                    </MenuItem>
-                  ))}
-                  <MenuItem value="__add_new">Add New Category</MenuItem>
-                </Select>
-              </FormControl>
-              <Collapse in={showNewCategoryInput}>
-                <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                  <TextField
-                    label="New Category"
-                    type="text"
-                    fullWidth
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    disabled={isLoading}
-                  />
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={handleAddCategory}
-                    disabled={isLoading}
-                  >
-                    Add
-                  </Button>
-                </Box>
-              </Collapse>
-              <FormControl fullWidth margin="normal" disabled={isLoading}>
-                <InputLabel>Type</InputLabel>
-                <Select
-                  value={formData.type}
-                  label="Type"
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  required
-                >
-                  <MenuItem value="Expense">Expense</MenuItem>
-                  <MenuItem value="Income">Income</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField
-                label="Date"
-                type="date"
-                fullWidth
-                margin="normal"
-                value={formData.date || ""}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                required
-                disabled={isLoading}
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label="Description"
-                type="text"
-                fullWidth
-                margin="normal"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                disabled={isLoading}
-              />
-              <Box sx={{ mt: 2 }}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  disabled={isLoading}
-                  sx={{ mr: 2 }}
-                >
-                  {isLoading ? "Saving..." : editingId ? "Update Record" : "Add Record"}
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={() => {
-                    setFormOpen(false);
-                    setFormData({ id: null, amount: "", category: "", type: "", date: "", description: "" });
-                    setEditingId(null);
-                  }}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-              </Box>
-            </Box>
-          </Collapse>
         </CardContent>
       </Card>
+
+      {/* Dialog for Add/Edit Expense */}
+      <Dialog
+        open={formOpen}
+        onClose={handleCloseDialog}
+        maxWidth="sm"
+        fullWidth
+        sx={{
+          "& .MuiDialog-paper": {
+            borderRadius: 2,
+            p: 2,
+          },
+        }}
+      >
+        <DialogTitle>{editingId ? "Edit Record" : "Add Record"}</DialogTitle>
+        <DialogContent>
+          {(error || categoryError) && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error || categoryError}
+            </Alert>
+          )}
+          <Box component="form" onSubmit={handleSubmit}>
+            <TextField
+              label="Amount"
+              type="number"
+              fullWidth
+              margin="normal"
+              value={formData.amount}
+              onChange={(e) =>
+                setFormData({ ...formData, amount: e.target.value })
+              }
+              required
+              disabled={isLoading}
+            />
+            <FormControl fullWidth margin="normal" disabled={isLoading}>
+              <InputLabel>Category</InputLabel>
+              <Select
+                value={formData.category || ""}
+                label="Category"
+                onChange={handleCategoryChange}
+                required
+              >
+                {recentCategories.length > 0 && (
+                  <MenuItem disabled value="">
+                    <em>Recent</em>
+                  </MenuItem>
+                )}
+                {recentCategories.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))}
+                <MenuItem disabled value="">
+                  <em>All</em>
+                </MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat} value={cat}>
+                    {cat}
+                  </MenuItem>
+                ))}
+                <MenuItem value="__add_new">Add New Category</MenuItem>
+              </Select>
+            </FormControl>
+            {showNewCategoryInput && (
+              <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                <TextField
+                  label="New Category"
+                  type="text"
+                  fullWidth
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  disabled={isLoading}
+                />
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={handleAddCategory}
+                  disabled={isLoading}
+                >
+                  Add
+                </Button>
+              </Box>
+            )}
+            <FormControl fullWidth margin="normal" disabled={isLoading}>
+              <InputLabel>Type</InputLabel>
+              <Select
+                value={formData.type}
+                label="Type"
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
+                required
+              >
+                <MenuItem value="Expense">Expense</MenuItem>
+                <MenuItem value="Income">Income</MenuItem>
+              </Select>
+            </FormControl>
+            <TextField
+              label="Date"
+              type="date"
+              fullWidth
+              margin="normal"
+              value={formData.date || ""}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
+              required
+              disabled={isLoading}
+              InputLabelProps={{ shrink: true }}
+            />
+            <TextField
+              label="Description"
+              type="text"
+              fullWidth
+              margin="normal"
+              value={formData.description}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              disabled={isLoading}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="outlined"
+            color="secondary"
+            onClick={handleCloseDialog}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            disabled={isLoading}
+            sx={{ mr: 1 }}
+          >
+            {isLoading
+              ? "Saving..."
+              : editingId
+              ? "Update Record"
+              : "Add Record"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleCloseDeleteConfirm}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this record?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDeleteConfirm} color="primary">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => handleDelete(deleteId)}
+            variant="contained"
+            color="error"
+            disabled={isLoading}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={3000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
