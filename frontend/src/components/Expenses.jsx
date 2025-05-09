@@ -25,6 +25,9 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -258,23 +261,27 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
     setSnackbar({ open: false, message: "", severity: "success" });
   };
 
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("en-US");
+  };
+
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        Expenses
-      </Typography>
-      {(error || categoryError) && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error || categoryError}
-        </Alert>
-      )}
-      {isLoading && (
-        <Box display="flex" justifyContent="center" mb={2}>
-          <CircularProgress />
-        </Box>
-      )}
       <Card sx={{ boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}>
         <CardContent>
+          <Typography variant="h5" gutterBottom>
+            Expenses
+          </Typography>
+          {(error || categoryError) && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error || categoryError}
+            </Alert>
+          )}
+          {isLoading && (
+            <Box display="flex" justifyContent="center" mb={2}>
+              <CircularProgress />
+            </Box>
+          )}
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow>
@@ -296,7 +303,7 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
                   </TableCell>
                   <TableCell>{tx.category}</TableCell>
                   <TableCell>{tx.type}</TableCell>
-                  <TableCell>{tx.date}</TableCell>
+                  <TableCell>{formatDate(tx.date)}</TableCell>
                   <TableCell>{tx.description || "-"}</TableCell>
                   <TableCell>
                     <IconButton
@@ -350,107 +357,114 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
               {error || categoryError}
             </Alert>
           )}
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              label="Amount"
-              type="number"
-              fullWidth
-              margin="normal"
-              value={formData.amount}
-              onChange={(e) =>
-                setFormData({ ...formData, amount: e.target.value })
-              }
-              required
-              disabled={isLoading}
-            />
-            <FormControl fullWidth margin="normal" disabled={isLoading}>
-              <InputLabel>Category</InputLabel>
-              <Select
-                value={formData.category || ""}
-                label="Category"
-                onChange={handleCategoryChange}
-                required
-              >
-                {recentCategories.length > 0 && (
-                  <MenuItem disabled value="">
-                    <em>Recent</em>
-                  </MenuItem>
-                )}
-                {recentCategories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    {cat}
-                  </MenuItem>
-                ))}
-                <MenuItem disabled value="">
-                  <em>All</em>
-                </MenuItem>
-                {categories.map((cat) => (
-                  <MenuItem key={cat} value={cat}>
-                    {cat}
-                  </MenuItem>
-                ))}
-                <MenuItem value="__add_new">Add New Category</MenuItem>
-              </Select>
-            </FormControl>
-            {showNewCategoryInput && (
-              <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                <TextField
-                  label="New Category"
-                  type="text"
-                  fullWidth
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  disabled={isLoading}
-                />
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={handleAddCategory}
-                  disabled={isLoading}
-                >
-                  Add
-                </Button>
-              </Box>
-            )}
-            <FormControl fullWidth margin="normal" disabled={isLoading}>
-              <InputLabel>Type</InputLabel>
-              <Select
-                value={formData.type}
-                label="Type"
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en">
+            <Box component="form" onSubmit={handleSubmit}>
+              <TextField
+                label="Amount"
+                type="number"
+                fullWidth
+                margin="normal"
+                value={formData.amount}
                 onChange={(e) =>
-                  setFormData({ ...formData, type: e.target.value })
+                  setFormData({ ...formData, amount: e.target.value })
                 }
                 required
-              >
-                <MenuItem value="Expense">Expense</MenuItem>
-                <MenuItem value="Income">Income</MenuItem>
-              </Select>
-            </FormControl>
-            <TextField
-              label="Date"
-              type="date"
-              fullWidth
-              margin="normal"
-              value={formData.date || ""}
-              onChange={(e) =>
-                setFormData({ ...formData, date: e.target.value })
-              }
-              required
-              disabled={isLoading}
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label="Description"
-              type="text"
-              fullWidth
-              margin="normal"
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              disabled={isLoading}
-            />
-          </Box>
+                disabled={isLoading}
+              />
+              <FormControl fullWidth margin="normal" disabled={isLoading}>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  value={formData.category || ""}
+                  label="Category"
+                  onChange={handleCategoryChange}
+                  required
+                >
+                  {recentCategories.length > 0 && (
+                    <MenuItem disabled value="">
+                      <em>Recent</em>
+                    </MenuItem>
+                  )}
+                  {recentCategories.map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat}
+                    </MenuItem>
+                  ))}
+                  <MenuItem disabled value="">
+                    <em>All</em>
+                  </MenuItem>
+                  {categories.map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                      {cat}
+                    </MenuItem>
+                  ))}
+                  <MenuItem value="__add_new">Add New Category</MenuItem>
+                </Select>
+              </FormControl>
+              {showNewCategoryInput && (
+                <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                  <TextField
+                    label="New Category"
+                    type="text"
+                    fullWidth
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    onClick={handleAddCategory}
+                    disabled={isLoading}
+                  >
+                    Add
+                  </Button>
+                </Box>
+              )}
+              <FormControl fullWidth margin="normal" disabled={isLoading}>
+                <InputLabel>Type</InputLabel>
+                <Select
+                  value={formData.type}
+                  label="Type"
+                  onChange={(e) =>
+                    setFormData({ ...formData, type: e.target.value })
+                  }
+                  required
+                >
+                  <MenuItem value="Expense">Expense</MenuItem>
+                  <MenuItem value="Income">Income</MenuItem>
+                </Select>
+              </FormControl>
+              <DatePicker
+                label="Date"
+                value={formData.date ? dayjs(formData.date) : null}
+                onChange={(newValue) =>
+                  setFormData({
+                    ...formData,
+                    date: newValue ? newValue.format("YYYY-MM-DD") : "",
+                  })
+                }
+                slotProps={{
+                  textField: {
+                    fullWidth: true,
+                    margin: "normal",
+                    required: true,
+                    disabled: isLoading,
+                  },
+                }}
+              />
+              <TextField
+                label="Description"
+                type="text"
+                fullWidth
+                margin="normal"
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                disabled={isLoading}
+              />
+            </Box>
+          </LocalizationProvider>
         </DialogContent>
         <DialogActions>
           <Button
