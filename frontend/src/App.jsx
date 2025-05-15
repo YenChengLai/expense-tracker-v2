@@ -43,29 +43,44 @@ function App() {
   const [userImage, setUserImage] = useState("");
 
   useEffect(() => {
-    const fetchUserRole = async () => {
+    const fetchUserData = async () => {
       if (token) {
         try {
-          const response = await axios.get(
+          // Step 1: Verify token with auth-service
+          const authResponse = await axios.get(
             "http://127.0.0.1:8002/verify-token",
             {
               params: { token },
             }
           );
-          setUserRole(response.data.role);
-          setUserName(response.data.userName || "Visitor");
-          setUserImage(response.data.image || "https://via.placeholder.com/40");
+          const { role, userId } = authResponse.data;
+          setUserRole(role);
+
+          // Step 2: Fetch user profile from expense-service
+          const profileResponse = await axios.get(
+            "http://127.0.0.1:8001/user",
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          const { name, image } = profileResponse.data;
+          setUserName(name || "Visitor");
+          setUserImage(image || "https://picsum.photos/40");
         } catch (err) {
-          console.error("Failed to fetch user role:", err);
+          console.error("Failed to fetch user data:", err);
           setUserRole(null);
+          setUserName("Visitor");
+          setUserImage("https://picsum.photos/40");
           localStorage.removeItem("token");
           setToken("");
         }
       } else {
         setUserRole(null);
+        setUserName("Visitor");
+        setUserImage("https://picsum.photos/40");
       }
     };
-    fetchUserRole();
+    fetchUserData();
   }, [token]);
 
   const handleRecordAdded = async (payload) => {
@@ -120,6 +135,11 @@ function App() {
     setSnackbar({ open: true, message, severity: "success" });
   };
 
+  const handleProfileUpdated = (updatedProfile) => {
+    setUserName(updatedProfile.name || "Visitor");
+    setUserImage(updatedProfile.image || "https://picsum.photos/40");
+  };
+
   const handleCloseSnackbar = () => {
     setSnackbar({ open: false, message: "", severity: "success" });
   };
@@ -128,6 +148,8 @@ function App() {
     localStorage.removeItem("token");
     setToken("");
     setUserRole(null);
+    setUserName("Visitor");
+    setUserImage("https://picsum.photos/40");
   };
 
   return (
@@ -240,6 +262,7 @@ function App() {
                       <Settings
                         token={token}
                         onCategoryUpdated={handleCategoryUpdated}
+                        onProfileUpdated={handleProfileUpdated}
                       />
                     }
                   />

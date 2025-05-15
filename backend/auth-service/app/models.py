@@ -1,5 +1,6 @@
-from pydantic import BaseModel, EmailStr
 from datetime import datetime
+
+from pydantic import BaseModel, EmailStr
 
 BEARER = "bearer"
 
@@ -17,8 +18,6 @@ class TokenResponse(BaseModel):
 class UserResponse(BaseModel):
     email: str
     userId: str
-    userName: str | None = None
-    image: str | None = None
     role: str
 
 
@@ -47,3 +46,12 @@ class PendingUser(BaseModel):
 class UserApprovalRequest(BaseModel):
     userId: str
     approve: bool
+
+
+class PasswordUpdateRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class PasswordUpdateResponse(BaseModel):
+    message: str

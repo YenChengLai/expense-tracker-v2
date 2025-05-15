@@ -9,8 +9,8 @@ class ExpenseCreate(BaseModel):
     category: str
     date: str
     description: str | None = None
-    type: str  # "expense" or "income"
-    currency: str = "USD"  # e.g., "USD", "EUR"
+    type: str
+    currency: str = "USD"
 
 
 class Category(BaseModel):
@@ -31,3 +31,20 @@ class Expense(BaseModel):
 
     class Config:
         json_encoders: ClassVar[dict] = {ObjectId: str}
+
+
+class UserProfile(BaseModel):
+    userId: str
+    email: str
+    name: str | None = None
+    image: str | None = None
+    currency: str = "USD"
+    dateFormat: str = "MM/DD/YYYY"
+    updatedAt: int | None = None
+
+
+class UserProfileUpdate(BaseModel):
+    name: str | None = None
+    image: str | None = None
+    currency: str | None = None
+    dateFormat: str | None = None
