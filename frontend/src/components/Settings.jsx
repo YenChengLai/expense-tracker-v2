@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import {
   Card,
@@ -32,9 +32,7 @@ import {
   TableSortLabel,
   Snackbar,
   Avatar,
-  Divider,
   Fade,
-  IconButton as MuiIconButton,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -45,7 +43,8 @@ import WarningIcon from "@mui/icons-material/Warning";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LockIcon from "@mui/icons-material/Lock";
-import CameraAltIcon from "@mui/icons-material/CameraAlt";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
+import ClearIcon from "@mui/icons-material/Clear";
 
 function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
   const [categories, setCategories] = useState([]);
@@ -86,6 +85,18 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
   const [sortDirection, setSortDirection] = useState("asc");
   const [sortBy, setSortBy] = useState("name");
   const [newImage, setNewImage] = useState(null);
+
+  const hasChanges = useMemo(() => {
+    return initialProfile
+      ? profile.name !== initialProfile.name ||
+          profile.currency !== initialProfile.currency ||
+          profile.dateFormat !== initialProfile.dateFormat ||
+          (newImage !== null && newImage !== initialProfile.image) ||
+          profile.image !== initialProfile.image ||
+          (profile.newPassword &&
+            profile.newPassword === profile.confirmNewPassword)
+      : false;
+  }, [profile, initialProfile, newImage]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -131,14 +142,12 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     fetchCategories();
   }, [token]);
 
-  const hasChanges = initialProfile
-    ? profile.name !== initialProfile.name ||
-      profile.currency !== initialProfile.currency ||
-      profile.dateFormat !== initialProfile.dateFormat ||
-      (newImage !== null && newImage !== initialProfile.image) ||
-      (profile.newPassword &&
-        profile.newPassword === profile.confirmNewPassword)
-    : false;
+  useEffect(() => {
+    console.log("profile:", profile);
+    console.log("initialProfile:", initialProfile);
+    console.log("hasChanges:", hasChanges);
+    console.log("newImage:", newImage);
+  }, [profile, initialProfile, hasChanges, newImage]);
 
   const handleAddCategory = async () => {
     if (!newCategory.trim()) {
@@ -267,6 +276,14 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     }
   };
 
+  const handleRemoveImage = () => {
+    setProfile((prevProfile) => ({
+      ...prevProfile,
+      image: null,
+    }));
+    setNewImage(null);
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setProfileProgress(33);
@@ -285,18 +302,18 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     setProfileProgress(66);
     setProfileStep("Saving changes...");
     try {
-      // Update profile data (excluding password)
       const profileUpdate = {
         name: profile.name || undefined,
         image: newImage || profile.image || undefined,
         currency: profile.currency,
         dateFormat: profile.dateFormat,
       };
-      await axios.put("http://127.0.0.1:8001/user", profileUpdate, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.put(
+        "http://127.0.0.1:8001/user",
+        profileUpdate,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      // Update password separately if provided
       if (hasPasswordUpdate) {
         await axios.put(
           "http://127.0.0.1:8002/user/password",
@@ -308,6 +325,14 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
         );
       }
 
+      const updatedProfile = {
+        ...profile,
+        ...response.data,
+        newPassword: "",
+        confirmNewPassword: "",
+      };
+      setProfile(updatedProfile);
+
       setProfileProgress(100);
       setProfileStep("Profile updated successfully!");
       setSnackbar({
@@ -317,21 +342,13 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
       });
       onCategoryUpdated("Profile updated successfully!");
 
-      // Update parent state (App.jsx) with new profile data
       onProfileUpdated({
-        name: profile.name,
-        image: newImage || profile.image,
+        name: updatedProfile.name,
+        image: updatedProfile.image,
       });
 
-      // Reset form state
-      const updatedProfile = {
-        ...profile,
-        newPassword: "",
-        confirmNewPassword: "",
-      };
-      setProfile(updatedProfile);
-      setInitialProfile(updatedProfile); // Update initial profile to new values
       setNewImage(null);
+      setInitialProfile(updatedProfile);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to update profile.");
       setProfileProgress(0);
@@ -407,8 +424,9 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     return true;
   });
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ open: false, message: "", severity: "success" });
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === "clickaway") return;
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -474,8 +492,76 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                     Personal Information
                   </Typography>
                 </Box>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
+                <Grid container spacing={4}>
+                  {/* Avatar and Buttons Row */}
+                  <Grid item xs={12} sx={{ width: "100%", display: "block" }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 2,
+                      }}
+                    >
+                      {/* Avatar */}
+                      <Avatar
+                        src={newImage || profile.image || ""}
+                        alt="Profile Image"
+                        sx={{ width: 120, height: 120 }}
+                      />
+                      {/* Buttons */}
+                      <Box sx={{ display: "flex", gap: 2 }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          component="label"
+                          startIcon={<UploadFileIcon />}
+                          disabled={isLoading}
+                          sx={{
+                            px: 2,
+                            py: 0.5,
+                            borderRadius: 1,
+                            textTransform: "none",
+                            fontSize: "0.95rem",
+                            backgroundColor: "primary.main",
+                            "&:hover": { backgroundColor: "primary.dark" },
+                          }}
+                        >
+                          Upload Image
+                          <input
+                            type="file"
+                            accept="image/*"
+                            hidden
+                            onChange={handleImageUpload}
+                          />
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          startIcon={<ClearIcon />}
+                          onClick={handleRemoveImage}
+                          disabled={isLoading || (!newImage && !profile.image)}
+                          sx={{
+                            px: 2,
+                            py: 0.5,
+                            borderRadius: 1,
+                            textTransform: "none",
+                            fontSize: "0.95rem",
+                            backgroundColor: "error.main",
+                            "&:hover": { backgroundColor: "error.dark" },
+                          }}
+                        >
+                          Remove Image
+                        </Button>
+                      </Box>
+                    </Box>
+                  </Grid>
+                  {/* Name Row */}
+                  <Grid
+                    item
+                    xs={12}
+                    sx={{ width: "100%", display: "block", mt: 2 }}
+                  >
                     <TextField
                       label="Name"
                       value={profile.name}
@@ -492,7 +578,8 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                       }}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  {/* Email Row */}
+                  <Grid item xs={12} sx={{ width: "100%", display: "block" }}>
                     <TextField
                       label="Email"
                       value={profile.email}
@@ -506,36 +593,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                         "& .MuiOutlinedInput-root": { borderRadius: 1 },
                       }}
                     />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ position: "relative", display: "inline-block" }}>
-                      <Avatar
-                        src={newImage || profile.image || ""}
-                        alt="Profile Image"
-                        sx={{ width: 100, height: 100, mb: 2 }}
-                      />
-                      <MuiIconButton
-                        component="label"
-                        sx={{
-                          position: "absolute",
-                          bottom: 10,
-                          right: 0,
-                          backgroundColor: "primary.main",
-                          color: "white",
-                          "&:hover": { backgroundColor: "primary.dark" },
-                          borderRadius: "50%",
-                          p: 1,
-                        }}
-                      >
-                        <CameraAltIcon fontSize="small" />
-                        <input
-                          type="file"
-                          accept="image/*"
-                          hidden
-                          onChange={handleImageUpload}
-                        />
-                      </MuiIconButton>
-                    </Box>
                   </Grid>
                 </Grid>
               </Box>
