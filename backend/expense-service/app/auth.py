@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 import requests
 from bson import ObjectId
 from fastapi import Depends, HTTPException
@@ -27,7 +29,7 @@ class TokenData(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
+        json_encoders: ClassVar[dict] = {ObjectId: str}
 
 
 def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:

@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, EmailStr
 
+
 BEARER = "bearer"
 
 
@@ -49,7 +50,6 @@ class UserApprovalRequest(BaseModel):
 
 
 class PasswordUpdateRequest(BaseModel):
-    email: EmailStr
     password: str
 
 

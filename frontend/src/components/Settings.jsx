@@ -33,6 +33,8 @@ import {
   Snackbar,
   Avatar,
   Fade,
+  Backdrop,
+  CircularProgress,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -57,7 +59,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
   const [profile, setProfile] = useState({
     name: "",
     email: "",
-    image: "",
+    image: null,
     currency: "USD",
     dateFormat: "MM/DD/YYYY",
     newPassword: "",
@@ -85,10 +87,12 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
   const [sortDirection, setSortDirection] = useState("asc");
   const [sortBy, setSortBy] = useState("name");
   const [newImage, setNewImage] = useState(null);
+  const [isReloading, setIsReloading] = useState(false);
 
   const hasChanges = useMemo(() => {
     return initialProfile
       ? profile.name !== initialProfile.name ||
+          profile.email !== initialProfile.email ||
           profile.currency !== initialProfile.currency ||
           profile.dateFormat !== initialProfile.dateFormat ||
           (newImage !== null && newImage !== initialProfile.image) ||
@@ -101,6 +105,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
+        setIsLoading(true);
         const response = await axios.get("http://127.0.0.1:8001/user", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -108,7 +113,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
         const userProfile = {
           name: response.data.name || "",
           email: response.data.email || "",
-          image: response.data.image || "",
+          image: response.data.image || null,
           currency: response.data.currency || "USD",
           dateFormat: response.data.dateFormat || "MM/DD/YYYY",
           newPassword: "",
@@ -118,6 +123,8 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
         setInitialProfile(userProfile);
       } catch (err) {
         setError(err.response?.data?.detail || "Failed to load user data.");
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchUserData();
@@ -141,13 +148,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     };
     fetchCategories();
   }, [token]);
-
-  useEffect(() => {
-    console.log("profile:", profile);
-    console.log("initialProfile:", initialProfile);
-    console.log("hasChanges:", hasChanges);
-    console.log("newImage:", newImage);
-  }, [profile, initialProfile, hasChanges, newImage]);
 
   const handleAddCategory = async () => {
     if (!newCategory.trim()) {
@@ -289,14 +289,12 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     setProfileProgress(33);
     setProfileStep("Validating inputs...");
     const hasPasswordUpdate =
-      profile.newPassword && profile.newPassword !== profile.confirmNewPassword;
-    if (hasPasswordUpdate) {
-      if (profile.newPassword !== profile.confirmNewPassword) {
-        setError("Passwords do not match.");
-        setProfileProgress(0);
-        setProfileStep("");
-        return;
-      }
+      profile.newPassword && profile.newPassword === profile.confirmNewPassword;
+    if (hasPasswordUpdate && profile.newPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      setProfileProgress(0);
+      setProfileStep("");
+      return;
     }
 
     setProfileProgress(66);
@@ -304,7 +302,8 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     try {
       const profileUpdate = {
         name: profile.name || undefined,
-        image: newImage || profile.image || undefined,
+        email: profile.email || undefined,
+        image: newImage || profile.image || null,
         currency: profile.currency,
         dateFormat: profile.dateFormat,
       };
@@ -316,9 +315,8 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
 
       if (hasPasswordUpdate) {
         await axios.put(
-          "http://127.0.0.1:8002/user/password",
+          "http://127.0.0.1:8002/user/password", // Updated to auth-service endpoint
           {
-            email: profile.email,
             password: profile.newPassword,
           },
           { headers: { Authorization: `Bearer ${token}` } }
@@ -330,25 +328,29 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
         ...response.data,
         newPassword: "",
         confirmNewPassword: "",
+        image: newImage || response.data.image || null,
       };
       setProfile(updatedProfile);
-
+      setInitialProfile({ ...updatedProfile });
+      setNewImage(null);
       setProfileProgress(100);
       setProfileStep("Profile updated successfully!");
       setSnackbar({
         open: true,
-        message: "Profile updated successfully!",
+        message: "Profile updated successfully! Reloading...",
         severity: "success",
       });
-      onCategoryUpdated("Profile updated successfully!");
 
       onProfileUpdated({
         name: updatedProfile.name,
+        email: updatedProfile.email,
         image: updatedProfile.image,
       });
 
-      setNewImage(null);
-      setInitialProfile(updatedProfile);
+      setIsReloading(true);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (err) {
       setError(err.response?.data?.detail || "Failed to update profile.");
       setProfileProgress(0);
@@ -433,6 +435,13 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     <Box
       sx={{ p: 4, backgroundColor: "background.default", minHeight: "100vh" }}
     >
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={isLoading || profileProgress > 0 || isReloading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
+
       <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: "bold" }}>
         Settings
       </Typography>
@@ -476,7 +485,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
               Profile
             </Typography>
             <Box component="form" onSubmit={handleProfileUpdate}>
-              {/* Personal Information Section */}
               <Box
                 sx={{
                   mb: 4,
@@ -493,7 +501,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                   </Typography>
                 </Box>
                 <Grid container spacing={4}>
-                  {/* Avatar and Buttons Row */}
                   <Grid item xs={12} sx={{ width: "100%", display: "block" }}>
                     <Box
                       sx={{
@@ -503,13 +510,11 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                         gap: 2,
                       }}
                     >
-                      {/* Avatar */}
                       <Avatar
-                        src={newImage || profile.image || ""}
+                        src={newImage || profile.image || null}
                         alt="Profile Image"
                         sx={{ width: 120, height: 120 }}
                       />
-                      {/* Buttons */}
                       <Box sx={{ display: "flex", gap: 2 }}>
                         <Button
                           variant="contained"
@@ -556,7 +561,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                       </Box>
                     </Box>
                   </Grid>
-                  {/* Name Row */}
                   <Grid
                     item
                     xs={12}
@@ -578,14 +582,16 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                       }}
                     />
                   </Grid>
-                  {/* Email Row */}
                   <Grid item xs={12} sx={{ width: "100%", display: "block" }}>
                     <TextField
                       label="Email"
                       value={profile.email}
+                      onChange={(e) =>
+                        setProfile({ ...profile, email: e.target.value })
+                      }
                       fullWidth
                       margin="normal"
-                      disabled={true}
+                      disabled={isLoading}
                       type="email"
                       variant="outlined"
                       sx={{
@@ -597,7 +603,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                 </Grid>
               </Box>
 
-              {/* Preferences Section */}
               <Box
                 sx={{
                   mb: 4,
@@ -657,7 +662,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                 </Grid>
               </Box>
 
-              {/* Password Section */}
               <Box
                 sx={{
                   mb: 4,
@@ -738,7 +742,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                 </Grid>
               </Box>
 
-              {/* Progress and Action Buttons */}
               {profileProgress > 0 && (
                 <Fade in={profileProgress > 0}>
                   <Box sx={{ mb: 3 }}>

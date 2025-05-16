@@ -11,6 +11,7 @@ from .auth import (
     create_pending_user,
     get_pending_users,
     initiate_password_reset,
+    update_password,
     verify_token,
 )
 from .db import get_db
@@ -18,6 +19,7 @@ from .models import (
     BEARER,
     ForgotPasswordRequest,
     LoginRequest,
+    PasswordUpdateRequest,
     PendingUser,
     SignupRequest,
     TokenResponse,
@@ -56,7 +58,9 @@ def require_admin(authorization: Annotated[str | None, Header()] = None, db=Depe
 
 @app.post("/login", response_model=TokenResponse)
 async def login(request: LoginRequest, db=Depends(get_db)) -> dict:
+    print("Logging in user")
     user = authenticate_user(request.email, request.password, db)
+    print(f"User {user.email} logged in successfully")
     access_token = create_access_token({"sub": user.email})
     return {"access_token": access_token, "token_type": BEARER}
 
@@ -107,6 +111,25 @@ def approve_user_endpoint(
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process request: {e!r}") from e
+
+
+@app.put("/user/password")
+async def update_user_password(
+    password_data: PasswordUpdateRequest, authorization: Annotated[str | None, Header()] = None, db=Depends(get_db)
+) -> dict[str, str]:
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        scheme, token = authorization.split()
+        if scheme.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid authentication scheme")
+        user = verify_token(token, db)
+        if not password_data.password:
+            raise HTTPException(status_code=403, detail="Cannot update password for another user")
+        update_password(password_data, user, db)
+        return {"message": "Password updated successfully"}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Failed to update password: {str(exc)}") from exc
 
 
 @app.get("/health")

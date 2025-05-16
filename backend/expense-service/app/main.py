@@ -1,6 +1,5 @@
-import datetime
 import time
-from typing import Annotated
+from typing import Annotated, Any
 
 from bson import ObjectId
 from fastapi import Depends, FastAPI, HTTPException
@@ -81,7 +80,7 @@ def update_expense(
     expense_dict = expense.model_dump()
     expense_dict["userId"] = current_user.userId
     expense_dict["groupId"] = None
-    expense_dict["epoch"] = int(time.time())
+    expense_dict["epoch"] = int(time.time() * 1000)
     result = db.expense.update_one({"_id": ObjectId(expense_id), "userId": current_user.userId}, {"$set": expense_dict})
     if not result.modified_count:
         raise HTTPException(status_code=404, detail="Expense not found or not owned by user")
@@ -182,6 +181,7 @@ def create_user_profile(
     if existing:
         raise HTTPException(status_code=400, detail="User profile already exists")
     profile = user_data.model_dump()
+    profile["userId"] = user_data.userId
     profile["updatedAt"] = int(time.time() * 1000)
     db.user_profile.insert_one(profile)
     return {"message": "User profile created successfully"}
@@ -191,12 +191,20 @@ def create_user_profile(
 def get_user(
     current_user: Annotated[TokenData, Depends(get_current_user)],
     db: Annotated[Database, Depends(get_db)],
-) -> UserProfile:
-    profile = db.user_profile.find_one({"userId": str(current_user.userId)})
-    print(f"User profile: {profile}")
+) -> dict[Any, Any]:
+    profile = db.user_profile.find_one({"userId": current_user.userId})
     if not profile:
         raise HTTPException(status_code=404, detail="User profile not found")
-    return UserProfile(**profile)
+    # Fetch email from auth-service using TokenData
+    email = current_user.email
+    profile_dict = {}
+    profile_dict["email"] = email  # Add email to the response
+    profile_dict["userId"] = str(profile["userId"])
+    profile_dict["name"] = profile.get("name")
+    profile_dict["image"] = profile.get("image")
+    profile_dict["currency"] = profile.get("currency", "USD")
+    profile_dict["dateFormat"] = profile.get("dateFormat", "MM/DD/YYYY")
+    return profile_dict
 
 
 @app.put("/user")
@@ -209,8 +217,7 @@ def update_user(
     if not update_fields:
         raise HTTPException(status_code=400, detail="No fields to update")
     update_fields["updatedAt"] = int(time.time() * 1000)
-    result = db.user_profile.update_one({"userId": str(current_user.userId)}, {"$set": update_fields})
-    print(f"Update result: {result}")
+    result = db.user_profile.update_one({"userId": current_user.userId}, {"$set": update_fields})
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="User profile not found")
     return {"message": "User profile updated successfully"}

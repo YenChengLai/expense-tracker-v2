@@ -40,13 +40,12 @@ function App() {
   const [userRole, setUserRole] = useState(null);
   const theme = mode === "light" ? lightTheme : darkTheme;
   const [userName, setUserName] = useState("");
-  const [userImage, setUserImage] = useState("");
+  const [userImage, setUserImage] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (token) {
         try {
-          // Step 1: Verify token with auth-service
           const authResponse = await axios.get(
             "http://127.0.0.1:8002/verify-token",
             {
@@ -56,7 +55,6 @@ function App() {
           const { role, userId } = authResponse.data;
           setUserRole(role);
 
-          // Step 2: Fetch user profile from expense-service
           const profileResponse = await axios.get(
             "http://127.0.0.1:8001/user",
             {
@@ -65,19 +63,19 @@ function App() {
           );
           const { name, image } = profileResponse.data;
           setUserName(name || "Visitor");
-          setUserImage(image || "https://picsum.photos/40");
+          setUserImage(image || null);
         } catch (err) {
           console.error("Failed to fetch user data:", err);
           setUserRole(null);
           setUserName("Visitor");
-          setUserImage("https://picsum.photos/40");
+          setUserImage(null);
           localStorage.removeItem("token");
           setToken("");
         }
       } else {
         setUserRole(null);
         setUserName("Visitor");
-        setUserImage("https://picsum.photos/40");
+        setUserImage(null);
       }
     };
     fetchUserData();
@@ -137,7 +135,7 @@ function App() {
 
   const handleProfileUpdated = (updatedProfile) => {
     setUserName(updatedProfile.name || "Visitor");
-    setUserImage(updatedProfile.image || "https://picsum.photos/40");
+    setUserImage(updatedProfile.image || null);
   };
 
   const handleCloseSnackbar = () => {
@@ -149,7 +147,7 @@ function App() {
     setToken("");
     setUserRole(null);
     setUserName("Visitor");
-    setUserImage("https://picsum.photos/40");
+    setUserImage(null);
   };
 
   return (
@@ -177,16 +175,35 @@ function App() {
               >
                 <Toolbar sx={{ justifyContent: "space-between" }}>
                   <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <img
-                      src={userImage}
-                      alt="User Profile"
-                      style={{
-                        borderRadius: "50%",
-                        width: "40px",
-                        height: "40px",
-                        marginRight: "10px",
-                      }}
-                    />
+                    {userImage ? (
+                      <img
+                        src={userImage}
+                        alt="User Profile"
+                        style={{
+                          borderRadius: "50%",
+                          width: "40px",
+                          height: "40px",
+                          marginRight: "10px",
+                        }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          backgroundColor: theme.palette.grey[300],
+                          marginRight: "10px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Typography variant="body2">
+                          {userName.charAt(0)}
+                        </Typography>
+                      </Box>
+                    )}
                     <Typography
                       variant="body2"
                       sx={{ color: theme.palette.text.primary }}

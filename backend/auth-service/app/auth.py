@@ -1,3 +1,4 @@
+import time
 import uuid
 from datetime import datetime, timedelta
 
@@ -27,6 +28,7 @@ def create_access_token(data: dict) -> str:
 
 def authenticate_user(email: str, password: str, db: Database) -> UserResponse:
     user = db.user.find_one({"email": email})
+    print(f"User found: {user}")
     if not user or not verify_password(password, user["hashedPassword"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     if user.get("deletedAt") is not None:
@@ -76,7 +78,7 @@ def create_pending_user(email: str, password: str, db: Database) -> PendingUser:
     pending_user = {
         "email": email,
         "hashedPassword": hashed_password,
-        "createdAt": datetime.utcnow(),
+        "createdAt": int(time.time() * 1000),
         "deletedAt": None,
         "groupId": None,
         "verified": False,
@@ -101,7 +103,7 @@ def approve_user(user_id: str, approve: bool, db: Database) -> None:
         try:
             requests.post(
                 "http://127.0.0.1:8001/user/profile",
-                json={"userId": user_id, "email": pending_user["email"]},
+                json={"userId": user_id},
                 timeout=5,
             )
         except requests.RequestException as e:
@@ -112,11 +114,10 @@ def approve_user(user_id: str, approve: bool, db: Database) -> None:
         print(f"User rejected: {pending_user['email']}")
 
 
-def update_password(password_data: PasswordUpdateRequest, db: Database) -> None:
+def update_password(password_data: PasswordUpdateRequest, user: UserResponse, db: Database) -> None:
     hashed_password = bcrypt.hashpw(password_data.password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
     result = db.user.update_one(
-        {"email": password_data.email},
-        {"$set": {"hashedPassword": hashed_password, "updatedAt": int(datetime.datetime.now().timestamp() * 1000)}},
+        {"_id": ObjectId(user.userId)}, {"$set": {"hashedPassword": hashed_password, "updatedAt": int(time.time())}}
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
