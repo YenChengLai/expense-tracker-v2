@@ -64,9 +64,11 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     dateFormat: "MM/DD/YYYY",
     newPassword: "",
     confirmNewPassword: "",
+    language: "English",
   });
   const [initialProfile, setInitialProfile] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [tabValue, setTabValue] = useState(0);
   const [preferences, setPreferences] = useState({
     theme: "light",
@@ -83,7 +85,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     severity: "success",
   });
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all"); // Changed default to "all"
   const [sortDirection, setSortDirection] = useState("asc");
   const [sortBy, setSortBy] = useState("name");
   const [newImage, setNewImage] = useState(null);
@@ -106,21 +108,34 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     const fetchUserData = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get("http://127.0.0.1:8001/user", {
+        const authResponse = await axios.get(
+          "http://127.0.0.1:8002/verify-token",
+          {
+            params: { token },
+          }
+        );
+        setUserRole(authResponse.data.role);
+
+        const profileResponse = await axios.get("http://127.0.0.1:8001/user", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setCurrentUserId(response.data.userId);
+        setCurrentUserId(profileResponse.data.userId);
         const userProfile = {
-          name: response.data.name || "",
-          email: response.data.email || "",
-          image: response.data.image || null,
-          currency: response.data.currency || "USD",
-          dateFormat: response.data.dateFormat || "MM/DD/YYYY",
+          name: profileResponse.data.name || "",
+          email: profileResponse.data.email || "",
+          image: profileResponse.data.image || null,
+          currency: profileResponse.data.currency || "USD",
+          dateFormat: profileResponse.data.dateFormat || "MM/DD/YYYY",
           newPassword: "",
           confirmNewPassword: "",
+          language: profileResponse.data.language || "English",
         };
         setProfile(userProfile);
         setInitialProfile(userProfile);
+        setPreferences((prev) => ({
+          ...prev,
+          language: userProfile.language || "English",
+        }));
       } catch (err) {
         setError(err.response?.data?.detail || "Failed to load user data.");
       } finally {
@@ -135,9 +150,11 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
       setIsLoading(true);
       setError("");
       try {
+        const showUniversal =
+          categoryFilter === "universal" || categoryFilter === "all";
         const response = await axios.get("http://127.0.0.1:8001/categories", {
           headers: { Authorization: `Bearer ${token}` },
-          params: { show_universal: true },
+          params: { show_universal: showUniversal },
         });
         setCategories(response.data || []);
       } catch (err) {
@@ -147,7 +164,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
       }
     };
     fetchCategories();
-  }, [token]);
+  }, [token, categoryFilter]);
 
   const handleAddCategory = async () => {
     if (!newCategory.trim()) {
@@ -162,8 +179,10 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
         { name: newCategory.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setCategories([...categories, response.data]);
+      const newCat = { ...response.data, userId: currentUserId };
+      setCategories([...categories, newCat]); // Instant update
       setNewCategory("");
+
       setSnackbar({
         open: true,
         message: `Category '${response.data.name}' added successfully!`,
@@ -192,9 +211,11 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
       );
       setCategories(
         categories.map((cat) =>
-          cat.name === editCategory ? response.data : cat
+          cat.name === editCategory
+            ? { ...response.data, userId: cat.userId }
+            : cat
         )
-      );
+      ); // Instant update
       setEditCategory(null);
       setEditName("");
       setSnackbar({
@@ -222,7 +243,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setCategories(categories.filter((cat) => cat.name !== deleteDialog.name));
+      setCategories(categories.filter((cat) => cat.name !== deleteDialog.name)); // Instant update
       setDeleteDialog({ open: false, name: "" });
       setSnackbar({
         open: true,
@@ -250,7 +271,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
       }
       setCategories(
         categories.filter((cat) => !selectedCategories.includes(cat.name))
-      );
+      ); // Instant update
       setSelectedCategories([]);
       setSnackbar({
         open: true,
@@ -306,6 +327,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
         image: newImage || profile.image || null,
         currency: profile.currency,
         dateFormat: profile.dateFormat,
+        language: profile.language,
       };
       const response = await axios.put(
         "http://127.0.0.1:8001/user",
@@ -315,7 +337,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
 
       if (hasPasswordUpdate) {
         await axios.put(
-          "http://127.0.0.1:8002/user/password", // Updated to auth-service endpoint
+          "http://127.0.0.1:8002/user/password",
           {
             password: profile.newPassword,
           },
@@ -370,6 +392,16 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     setIsLoading(true);
     setError("");
     try {
+      await axios.put(
+        "http://127.0.0.1:8001/user",
+        { language: preferences.language },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setProfile((prev) => ({ ...prev, language: preferences.language }));
+      setInitialProfile((prev) => ({
+        ...prev,
+        language: preferences.language,
+      }));
       setSnackbar({
         open: true,
         message: "Preferences updated successfully!",
@@ -421,14 +453,23 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
   };
 
   const filteredCategories = categories.filter((cat) => {
-    if (categoryFilter === "user") return cat.userId === currentUserId;
-    if (categoryFilter === "universal") return !cat.userId;
-    return true;
+    const isUniversal = !cat.userId || cat.userId === "None"; // Handle "None" as universal
+    if (categoryFilter === "user")
+      return !isUniversal && cat.userId === currentUserId;
+    if (categoryFilter === "universal") return isUniversal;
+    return true; // "all" filter shows both user-specific and universal
   });
 
   const handleCloseSnackbar = (event, reason) => {
     if (reason === "clickaway") return;
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  const canEditCategory = (cat) => {
+    const isUniversal = !cat.userId || cat.userId === "None";
+    return (
+      cat.userId === currentUserId || (userRole === "admin" && isUniversal)
+    );
   };
 
   return (
@@ -882,10 +923,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                         if (e.target.checked) {
                           setSelectedCategories(
                             filteredCategories
-                              .filter(
-                                (cat) =>
-                                  cat.userId && cat.userId === currentUserId
-                              )
+                              .filter((cat) => canEditCategory(cat))
                               .map((cat) => cat.name)
                           );
                         } else {
@@ -928,23 +966,26 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                             );
                           }
                         }}
-                        disabled={
-                          isLoading ||
-                          !cat.userId ||
-                          cat.userId !== currentUserId
-                        }
+                        disabled={isLoading || !canEditCategory(cat)}
                       />
                     </TableCell>
                     <TableCell
-                      sx={{ fontStyle: cat.userId ? "normal" : "italic" }}
+                      sx={{
+                        fontStyle:
+                          cat.userId && cat.userId !== "None"
+                            ? "normal"
+                            : "italic",
+                      }}
                     >
                       {cat.name}
                     </TableCell>
                     <TableCell>
-                      {cat.userId ? "User-Specific" : "Universal"}
+                      {cat.userId && cat.userId !== "None"
+                        ? "User-Specific"
+                        : "Universal"}
                     </TableCell>
                     <TableCell>
-                      {cat.userId && cat.userId === currentUserId ? (
+                      {canEditCategory(cat) ? (
                         <>
                           <IconButton
                             onClick={() => {
@@ -970,7 +1011,9 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                         </>
                       ) : (
                         <Typography variant="body2" color="text.secondary">
-                          No actions available
+                          {userRole === "admin"
+                            ? "No actions available"
+                            : "Admin access required"}
                         </Typography>
                       )}
                     </TableCell>

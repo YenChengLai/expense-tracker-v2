@@ -137,7 +137,9 @@ def list_categories(
         universal_query = {"userId": {"$exists": False}}
         universal_categories = db.category.find(universal_query).to_list(None)
     all_categories = user_categories + universal_categories
-    return [{"name": cat["name"], "userId": str(cat.get("userId")) or None} for cat in all_categories]
+    return [
+        {"name": cat["name"], "userId": str(cat.get("userId")) if cat.get("userId") else None} for cat in all_categories
+    ]
 
 
 @app.put("/categories/{name}")
