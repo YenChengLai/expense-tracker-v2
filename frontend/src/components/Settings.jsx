@@ -47,8 +47,11 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import LockIcon from "@mui/icons-material/Lock";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import ClearIcon from "@mui/icons-material/Clear";
+import PaletteIcon from "@mui/icons-material/Palette";
+import LanguageIcon from "@mui/icons-material/Language";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 
-function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
+function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
   const [categories, setCategories] = useState([]);
   const [newCategory, setNewCategory] = useState("");
   const [editCategory, setEditCategory] = useState(null);
@@ -74,6 +77,8 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     theme: "light",
     language: "English",
     notifications: false,
+    currency: "USD",
+    dateFormat: "MM/DD/YYYY",
   });
   const [deleteAccountDialog, setDeleteAccountDialog] = useState(false);
   const [deleteAccountConfirm, setDeleteAccountConfirm] = useState("");
@@ -85,7 +90,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     severity: "success",
   });
   const [selectedCategories, setSelectedCategories] = useState([]);
-  const [categoryFilter, setCategoryFilter] = useState("all"); // Changed default to "all"
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [sortDirection, setSortDirection] = useState("asc");
   const [sortBy, setSortBy] = useState("name");
   const [newImage, setNewImage] = useState(null);
@@ -95,8 +100,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     return initialProfile
       ? profile.name !== initialProfile.name ||
           profile.email !== initialProfile.email ||
-          profile.currency !== initialProfile.currency ||
-          profile.dateFormat !== initialProfile.dateFormat ||
           (newImage !== null && newImage !== initialProfile.image) ||
           profile.image !== initialProfile.image ||
           (profile.newPassword &&
@@ -132,10 +135,18 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
         };
         setProfile(userProfile);
         setInitialProfile(userProfile);
+        const fetchedThemeMode = profileResponse.data.themeMode || "light";
         setPreferences((prev) => ({
           ...prev,
           language: userProfile.language || "English",
+          currency: userProfile.currency || "USD",
+          dateFormat: userProfile.dateFormat || "MM/DD/YYYY",
+          theme: fetchedThemeMode,
         }));
+        // Only set mode if it's the initial load or theme has changed
+        if (typeof setMode === "function" && fetchedThemeMode !== undefined) {
+          setMode(fetchedThemeMode);
+        }
       } catch (err) {
         setError(err.response?.data?.detail || "Failed to load user data.");
       } finally {
@@ -143,7 +154,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
       }
     };
     fetchUserData();
-  }, [token]);
+  }, [token]); // Removed setMode from dependencies to prevent theme reset
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -180,7 +191,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const newCat = { ...response.data, userId: currentUserId };
-      setCategories([...categories, newCat]); // Instant update
+      setCategories([...categories, newCat]);
       setNewCategory("");
 
       setSnackbar({
@@ -215,7 +226,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
             ? { ...response.data, userId: cat.userId }
             : cat
         )
-      ); // Instant update
+      );
       setEditCategory(null);
       setEditName("");
       setSnackbar({
@@ -243,7 +254,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setCategories(categories.filter((cat) => cat.name !== deleteDialog.name)); // Instant update
+      setCategories(categories.filter((cat) => cat.name !== deleteDialog.name));
       setDeleteDialog({ open: false, name: "" });
       setSnackbar({
         open: true,
@@ -271,7 +282,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
       }
       setCategories(
         categories.filter((cat) => !selectedCategories.includes(cat.name))
-      ); // Instant update
+      );
       setSelectedCategories([]);
       setSnackbar({
         open: true,
@@ -325,8 +336,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
         name: profile.name || undefined,
         email: profile.email || undefined,
         image: newImage || profile.image || null,
-        currency: profile.currency,
-        dateFormat: profile.dateFormat,
         language: profile.language,
       };
       const response = await axios.put(
@@ -392,16 +401,28 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
     setIsLoading(true);
     setError("");
     try {
-      await axios.put(
-        "http://127.0.0.1:8001/user",
-        { language: preferences.language },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setProfile((prev) => ({ ...prev, language: preferences.language }));
+      const userUpdate = {
+        language: preferences.language,
+        currency: preferences.currency,
+        dateFormat: preferences.dateFormat,
+        themeMode: preferences.theme, // Use themeMode for backend
+      };
+      await axios.put("http://127.0.0.1:8001/user", userUpdate, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setProfile((prev) => ({
+        ...prev,
+        language: preferences.language,
+        currency: preferences.currency,
+        dateFormat: preferences.dateFormat,
+      }));
       setInitialProfile((prev) => ({
         ...prev,
         language: preferences.language,
+        currency: preferences.currency,
+        dateFormat: preferences.dateFormat,
       }));
+      setMode(preferences.theme); // Update app-wide theme immediately
       setSnackbar({
         open: true,
         message: "Preferences updated successfully!",
@@ -453,11 +474,11 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
   };
 
   const filteredCategories = categories.filter((cat) => {
-    const isUniversal = !cat.userId || cat.userId === "None"; // Handle "None" as universal
+    const isUniversal = !cat.userId || cat.userId === "None";
     if (categoryFilter === "user")
       return !isUniversal && cat.userId === currentUserId;
     if (categoryFilter === "universal") return isUniversal;
-    return true; // "all" filter shows both user-specific and universal
+    return true;
   });
 
   const handleCloseSnackbar = (event, reason) => {
@@ -640,65 +661,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                         "& .MuiOutlinedInput-root": { borderRadius: 1 },
                       }}
                     />
-                  </Grid>
-                </Grid>
-              </Box>
-
-              <Box
-                sx={{
-                  mb: 4,
-                  p: 3,
-                  borderRadius: 2,
-                  backgroundColor: "background.paper",
-                  boxShadow: 1,
-                }}
-              >
-                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                  <SettingsIcon sx={{ mr: 1, color: "primary.main" }} />
-                  <Typography variant="h6" sx={{ fontWeight: "medium" }}>
-                    Preferences
-                  </Typography>
-                </Box>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth margin="normal">
-                      <InputLabel sx={{ fontSize: "0.95rem" }}>
-                        Currency
-                      </InputLabel>
-                      <Select
-                        value={profile.currency}
-                        onChange={(e) =>
-                          setProfile({ ...profile, currency: e.target.value })
-                        }
-                        label="Currency"
-                        disabled={isLoading}
-                        sx={{ borderRadius: 1 }}
-                      >
-                        <MenuItem value="USD">USD</MenuItem>
-                        <MenuItem value="EUR">EUR</MenuItem>
-                        <MenuItem value="GBP">GBP</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl fullWidth margin="normal">
-                      <InputLabel sx={{ fontSize: "0.95rem" }}>
-                        Date Format
-                      </InputLabel>
-                      <Select
-                        value={profile.dateFormat}
-                        onChange={(e) =>
-                          setProfile({ ...profile, dateFormat: e.target.value })
-                        }
-                        label="Date Format"
-                        disabled={isLoading}
-                        sx={{ borderRadius: 1 }}
-                      >
-                        <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
-                        <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
-                        <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
-                      </Select>
-                    </FormControl>
                   </Grid>
                 </Grid>
               </Box>
@@ -1026,16 +988,43 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
       )}
 
       {tabValue === 2 && (
-        <Card sx={{ mb: 4, boxShadow: 3, borderRadius: 2 }}>
+        <Card
+          sx={{
+            mb: 4,
+            boxShadow: 3,
+            borderRadius: 2,
+            maxWidth: 900,
+            mx: "auto",
+          }}
+        >
           <CardContent sx={{ p: 4 }}>
-            <Typography
-              variant="h5"
-              gutterBottom
-              sx={{ fontWeight: "bold", mb: 3 }}
+            <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+              <SettingsIcon sx={{ mr: 1, color: "primary.main" }} />
+              <Typography
+                variant="h5"
+                gutterBottom
+                sx={{ fontWeight: "bold", mb: 0 }}
+              >
+                Preferences
+              </Typography>
+            </Box>
+
+            {/* Appearance Section */}
+            <Box
+              sx={{
+                mb: 4,
+                p: 3,
+                borderRadius: 2,
+                backgroundColor: "background.paper",
+                boxShadow: 1,
+              }}
             >
-              Preferences
-            </Typography>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <PaletteIcon sx={{ mr: 1, color: "primary.main" }} />
+                <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+                  Appearance
+                </Typography>
+              </Box>
               <FormControlLabel
                 control={
                   <Switch
@@ -1046,25 +1035,112 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                         theme: e.target.checked ? "dark" : "light",
                       })
                     }
+                    color="primary"
                   />
                 }
                 label="Dark Mode"
                 sx={{ "& .MuiTypography-root": { fontSize: "0.95rem" } }}
               />
-              <FormControl sx={{ maxWidth: 300 }}>
-                <InputLabel sx={{ fontSize: "0.95rem" }}>Language</InputLabel>
-                <Select
-                  value={preferences.language}
-                  onChange={(e) =>
-                    setPreferences({ ...preferences, language: e.target.value })
-                  }
-                  label="Language"
-                  sx={{ borderRadius: 1 }}
-                >
-                  <MenuItem value="English">English</MenuItem>
-                  <MenuItem value="Spanish">Spanish</MenuItem>
-                </Select>
-              </FormControl>
+            </Box>
+
+            {/* Regional Settings Section */}
+            <Box
+              sx={{
+                mb: 4,
+                p: 3,
+                borderRadius: 2,
+                backgroundColor: "background.paper",
+                boxShadow: 1,
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <LanguageIcon sx={{ mr: 1, color: "primary.main" }} />
+                <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+                  Regional Settings
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <FormControl sx={{ maxWidth: 300 }}>
+                  <InputLabel sx={{ fontSize: "0.95rem" }}>Language</InputLabel>
+                  <Select
+                    value={preferences.language}
+                    onChange={(e) =>
+                      setPreferences({
+                        ...preferences,
+                        language: e.target.value,
+                      })
+                    }
+                    label="Language"
+                    disabled={isLoading}
+                    sx={{ borderRadius: 1, fontSize: "0.95rem" }}
+                  >
+                    <MenuItem value="English">English</MenuItem>
+                    <MenuItem value="Spanish">Spanish</MenuItem>
+                  </Select>
+                </FormControl>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <FormControl sx={{ maxWidth: 300 }}>
+                    <InputLabel sx={{ fontSize: "0.95rem" }}>
+                      Currency
+                    </InputLabel>
+                    <Select
+                      value={preferences.currency}
+                      onChange={(e) =>
+                        setPreferences({
+                          ...preferences,
+                          currency: e.target.value,
+                        })
+                      }
+                      label="Currency"
+                      disabled={isLoading}
+                      sx={{ borderRadius: 1, fontSize: "0.95rem" }}
+                    >
+                      <MenuItem value="USD">USD</MenuItem>
+                      <MenuItem value="EUR">EUR</MenuItem>
+                      <MenuItem value="GBP">GBP</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControl sx={{ maxWidth: 300 }}>
+                    <InputLabel sx={{ fontSize: "0.95rem" }}>
+                      Date Format
+                    </InputLabel>
+                    <Select
+                      value={preferences.dateFormat}
+                      onChange={(e) =>
+                        setPreferences({
+                          ...preferences,
+                          dateFormat: e.target.value,
+                        })
+                      }
+                      label="Date Format"
+                      disabled={isLoading}
+                      sx={{ borderRadius: 1, fontSize: "0.95rem" }}
+                    >
+                      <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
+                      <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
+                      <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Notifications Section */}
+            <Box
+              sx={{
+                mb: 4,
+                p: 3,
+                borderRadius: 2,
+                backgroundColor: "background.paper",
+                boxShadow: 1,
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                <NotificationsIcon sx={{ mr: 1, color: "primary.main" }} />
+                <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+                  Notifications
+                </Typography>
+              </Box>
               <FormControlLabel
                 control={
                   <Switch
@@ -1075,11 +1151,16 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                         notifications: e.target.checked,
                       })
                     }
+                    color="primary"
                   />
                 }
                 label="Enable Email Notifications"
                 sx={{ "& .MuiTypography-root": { fontSize: "0.95rem" } }}
               />
+            </Box>
+
+            {/* Save Button */}
+            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
               <Button
                 variant="contained"
                 color="primary"
@@ -1091,7 +1172,9 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated }) {
                   borderRadius: 1,
                   textTransform: "none",
                   fontSize: "1rem",
-                  maxWidth: 200,
+                  "&:hover": {
+                    backgroundColor: "primary.dark",
+                  },
                 }}
               >
                 {isLoading ? "Saving..." : "Save Preferences"}

@@ -7,18 +7,18 @@ const baseTheme = {
         fontFamily: "'Inter', sans-serif",
         h5: {
             fontWeight: 600,
-            color: "#2d3748",
+            color: (theme) => theme.palette.text.primary, // Use theme-aware color instead of hardcoded #2d3748
         },
         h6: {
             fontWeight: 600,
-            color: "#2d3748",
+            color: (theme) => theme.palette.text.primary, // Use theme-aware color instead of hardcoded #2d3748
         },
         subtitle2: {
             fontWeight: 500,
-            color: "#4a5568",
+            color: (theme) => theme.palette.text.secondary, // Use theme-aware color instead of hardcoded #4a5568
         },
         body1: {
-            color: "#4a5568",
+            color: (theme) => theme.palette.text.secondary, // Use theme-aware color instead of hardcoded #4a5568
         },
     },
     components: {
@@ -155,7 +155,7 @@ const darkTheme = createTheme({
         },
         text: {
             primary: "#e0e0e0",
-            secondary: "#b0b0b0",
+            secondary: "#d3d3d3",
         },
     },
 });

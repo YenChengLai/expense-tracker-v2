@@ -41,6 +41,7 @@ function App() {
   const theme = mode === "light" ? lightTheme : darkTheme;
   const [userName, setUserName] = useState("");
   const [userImage, setUserImage] = useState(null);
+  const [isThemeInitialized, setIsThemeInitialized] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -61,9 +62,13 @@ function App() {
               headers: { Authorization: `Bearer ${token}` },
             }
           );
-          const { name, image } = profileResponse.data;
+          const { name, image, themeMode } = profileResponse.data;
           setUserName(name || "Visitor");
           setUserImage(image || null);
+          if (!isThemeInitialized || themeMode) {
+            setMode(themeMode || "light");
+            setIsThemeInitialized(true);
+          }
         } catch (err) {
           console.error("Failed to fetch user data:", err);
           setUserRole(null);
@@ -79,7 +84,7 @@ function App() {
       }
     };
     fetchUserData();
-  }, [token]);
+  }, [token, isThemeInitialized]); // Re-fetch only on token change or initial theme setup
 
   const handleRecordAdded = async (payload) => {
     try {
@@ -280,6 +285,7 @@ function App() {
                         token={token}
                         onCategoryUpdated={handleCategoryUpdated}
                         onProfileUpdated={handleProfileUpdated}
+                        setMode={setMode}
                       />
                     }
                   />

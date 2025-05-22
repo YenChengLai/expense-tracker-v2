@@ -39,6 +39,7 @@ class UserProfile(BaseModel):
     image: str | None = None
     currency: str = "USD"
     dateFormat: str = "MM/DD/YYYY"
+    themeMode: str = "light"
     updatedAt: int | None = None
 
     @validator("userId", pre=True)
@@ -63,3 +64,4 @@ class UserProfileUpdate(BaseModel):
     image: str | None = None
     currency: str | None = None
     dateFormat: str | None = None
+    themeMode: str | None = None

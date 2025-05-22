@@ -206,6 +206,7 @@ def get_user(
     profile_dict["image"] = profile.get("image")
     profile_dict["currency"] = profile.get("currency", "USD")
     profile_dict["dateFormat"] = profile.get("dateFormat", "MM/DD/YYYY")
+    profile_dict["themeMode"] = profile.get("themeMode", "light")
     return profile_dict
 
 
