@@ -16,6 +16,8 @@ import {
   TableRow,
   CircularProgress,
   Alert,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import axios from "axios";
 import {
@@ -44,6 +46,11 @@ ChartJS.register(
 );
 
 function Dashboard({ token, refreshKey }) {
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
+  const isSm = useMediaQuery(theme.breakpoints.between("sm", "md"));
+  const isMd = useMediaQuery(theme.breakpoints.between("md", "lg"));
+  const isLg = useMediaQuery(theme.breakpoints.up("lg"));
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [filteredExpenses, setFilteredExpenses] = useState([]);
@@ -59,7 +66,6 @@ function Dashboard({ token, refreshKey }) {
       setIsLoading(true);
       setError("");
       try {
-        // Fetch expenses
         const expensesResponse = await axios.get(
           "http://127.0.0.1:8001/expense",
           {
@@ -68,7 +74,6 @@ function Dashboard({ token, refreshKey }) {
         );
         setExpenses(expensesResponse.data || []);
 
-        // Fetch categories
         const categoriesResponse = await axios.get(
           "http://127.0.0.1:8001/categories",
           {
@@ -88,12 +93,10 @@ function Dashboard({ token, refreshKey }) {
     fetchData();
   }, [token, refreshKey]);
 
-  // Filter expenses based on date range and category
   useEffect(() => {
     const filterExpenses = () => {
       let filtered = [...expenses];
 
-      // Date range filter
       const now = new Date();
       let startDate;
       switch (dateRange) {
@@ -107,13 +110,12 @@ function Dashboard({ token, refreshKey }) {
           startDate = new Date(now.getFullYear(), 0, 1);
           break;
         default:
-          startDate = new Date(0); // All time
+          startDate = new Date(0);
       }
       filtered = filtered.filter(
         (expense) => new Date(expense.date) >= startDate
       );
 
-      // Category filter
       if (categoryFilter !== "all") {
         filtered = filtered.filter(
           (expense) => expense.category === categoryFilter
@@ -125,7 +127,6 @@ function Dashboard({ token, refreshKey }) {
     filterExpenses();
   }, [expenses, dateRange, categoryFilter]);
 
-  // Calculate summary metrics
   const totalExpenses = filteredExpenses.reduce(
     (sum, exp) => sum + exp.amount,
     0
@@ -141,7 +142,6 @@ function Dashboard({ token, refreshKey }) {
       : 365;
   const avgDailyExpense = totalExpenses / (daysInRange || 1);
 
-  // Find highest category
   const categoryTotals = filteredExpenses.reduce((acc, exp) => {
     acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
     return acc;
@@ -152,7 +152,6 @@ function Dashboard({ token, refreshKey }) {
     {}
   );
 
-  // Prepare data for Pie Chart (Category Distribution)
   const pieData = {
     labels: Object.keys(categoryTotals),
     datasets: [
@@ -170,7 +169,6 @@ function Dashboard({ token, refreshKey }) {
     ],
   };
 
-  // Prepare data for Line Chart (Expense Trends Over Time)
   const monthlyTotals = filteredExpenses.reduce((acc, exp) => {
     const date = new Date(exp.date);
     const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
@@ -192,7 +190,6 @@ function Dashboard({ token, refreshKey }) {
     ],
   };
 
-  // Prepare data for Bar Chart (Category Breakdown)
   const barData = {
     labels: Object.keys(categoryTotals),
     datasets: [
@@ -211,7 +208,6 @@ function Dashboard({ token, refreshKey }) {
     ],
   };
 
-  // Chart options for dark/light mode compatibility
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -273,24 +269,42 @@ function Dashboard({ token, refreshKey }) {
     },
   };
 
-  // Recent transactions (last 5)
   const recentTransactions = filteredExpenses.slice(-5).reverse();
+
+  // Dynamic chart height based on screen size
+  const chartHeight = isXs ? "40vh" : isSm ? "50vh" : isMd ? "60vh" : "70vh";
 
   return (
     <Box
-      sx={{ p: 4, backgroundColor: "background.default", minHeight: "100vh" }}
+      sx={{
+        p: isXs ? 2 : isSm ? 3 : 4,
+        backgroundColor: "background.default",
+        minHeight: "100vh",
+        width: "100%",
+      }}
     >
       {isLoading && <CircularProgress />}
       {error && <Alert severity="error">{error}</Alert>}
 
       {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={4}>
-          <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
+      <Grid
+        container
+        spacing={isXs ? 1 : isSm ? 2 : 3}
+        sx={{ mb: isXs ? 2 : 4 }}
+      >
+        <Grid item xs={12} sm={6} md={4} lg={4}>
+          <Card
+            sx={{
+              boxShadow: 3,
+              borderRadius: 2,
+              width: "100%",
+              height: "100%",
+            }}
+          >
             <CardContent>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: "medium", color: "text.primary" }}
+                sx={{ fontWeight: "medium", mb: 1, color: "text.primary" }}
               >
                 Total Expenses
               </Typography>
@@ -303,12 +317,19 @@ function Dashboard({ token, refreshKey }) {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
-          <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
+        <Grid item xs={12} sm={6} md={4} lg={4}>
+          <Card
+            sx={{
+              boxShadow: 3,
+              borderRadius: 2,
+              width: "100%",
+              height: "100%",
+            }}
+          >
             <CardContent>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: "medium", color: "text.primary" }}
+                sx={{ fontWeight: "medium", mb: 1, color: "text.primary" }}
               >
                 Avg. Daily Expense
               </Typography>
@@ -321,12 +342,19 @@ function Dashboard({ token, refreshKey }) {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={4}>
-          <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
+        <Grid item xs={12} sm={6} md={4} lg={4}>
+          <Card
+            sx={{
+              boxShadow: 3,
+              borderRadius: 2,
+              width: "100%",
+              height: "100%",
+            }}
+          >
             <CardContent>
               <Typography
                 variant="h6"
-                sx={{ fontWeight: "medium", color: "text.primary" }}
+                sx={{ fontWeight: "medium", mb: 1, color: "text.primary" }}
               >
                 Highest Category
               </Typography>
@@ -343,14 +371,26 @@ function Dashboard({ token, refreshKey }) {
       </Grid>
 
       {/* Filters */}
-      <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
-        <FormControl sx={{ minWidth: 200 }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: isXs ? "column" : "row",
+          gap: isXs ? 2 : 3,
+          mb: isXs ? 2 : 4,
+          width: "100%",
+        }}
+      >
+        <FormControl sx={{ minWidth: isXs ? "100%" : 200 }}>
           <InputLabel sx={{ color: "text.primary" }}>Date Range</InputLabel>
           <Select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
             label="Date Range"
-            sx={{ color: "text.primary", borderColor: "text.secondary" }}
+            sx={{
+              color: "text.primary",
+              borderColor: "text.secondary",
+              width: "100%",
+            }}
           >
             <MenuItem value="all">All Time</MenuItem>
             <MenuItem value="last30days">Last 30 Days</MenuItem>
@@ -358,13 +398,17 @@ function Dashboard({ token, refreshKey }) {
             <MenuItem value="thisyear">This Year</MenuItem>
           </Select>
         </FormControl>
-        <FormControl sx={{ minWidth: 200 }}>
+        <FormControl sx={{ minWidth: isXs ? "100%" : 200 }}>
           <InputLabel sx={{ color: "text.primary" }}>Category</InputLabel>
           <Select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             label="Category"
-            sx={{ color: "text.primary", borderColor: "text.secondary" }}
+            sx={{
+              color: "text.primary",
+              borderColor: "text.secondary",
+              width: "100%",
+            }}
           >
             <MenuItem value="all">All Categories</MenuItem>
             {categories.map((cat) => (
@@ -377,35 +421,54 @@ function Dashboard({ token, refreshKey }) {
       </Box>
 
       {/* Charts Section */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Pie Chart */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ boxShadow: 3, borderRadius: 2, height: "400px" }}>
-            <CardContent>
+      <Grid
+        container
+        spacing={isXs ? 1 : isSm ? 2 : 3}
+        sx={{ mb: isXs ? 2 : 4 }}
+      >
+        <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Card
+            sx={{
+              boxShadow: 3,
+              borderRadius: 2,
+              width: "100%",
+              height: chartHeight,
+            }}
+          >
+            <CardContent
+              sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+            >
               <Typography
                 variant="h6"
                 sx={{ fontWeight: "medium", mb: 2, color: "text.primary" }}
               >
                 Expense Distribution
               </Typography>
-              <Box sx={{ height: "300px" }}>
+              <Box sx={{ flexGrow: 1, width: "100%", height: "100%" }}>
                 <Pie data={pieData} options={chartOptions} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Line Chart */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ boxShadow: 3, borderRadius: 2, height: "400px" }}>
-            <CardContent>
+        <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Card
+            sx={{
+              boxShadow: 3,
+              borderRadius: 2,
+              width: "100%",
+              height: chartHeight,
+            }}
+          >
+            <CardContent
+              sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+            >
               <Typography
                 variant="h6"
                 sx={{ fontWeight: "medium", mb: 2, color: "text.primary" }}
               >
                 Expense Trends
               </Typography>
-              <Box sx={{ height: "300px" }}>
+              <Box sx={{ flexGrow: 1, width: "100%", height: "100%" }}>
                 <Line data={lineData} options={lineChartOptions} />
               </Box>
             </CardContent>
@@ -413,27 +476,33 @@ function Dashboard({ token, refreshKey }) {
         </Grid>
       </Grid>
 
-      <Grid container spacing={3}>
-        {/* Bar Chart */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ boxShadow: 3, borderRadius: 2, height: "400px" }}>
-            <CardContent>
+      <Grid container spacing={isXs ? 1 : isSm ? 2 : 3}>
+        <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Card
+            sx={{
+              boxShadow: 3,
+              borderRadius: 2,
+              width: "100%",
+              height: chartHeight,
+            }}
+          >
+            <CardContent
+              sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+            >
               <Typography
                 variant="h6"
                 sx={{ fontWeight: "medium", mb: 2, color: "text.primary" }}
               >
                 Category Breakdown
               </Typography>
-              <Box sx={{ height: "300px" }}>
+              <Box sx={{ flexGrow: 1, width: "100%", height: "100%" }}>
                 <Bar data={barData} options={barChartOptions} />
               </Box>
             </CardContent>
           </Card>
         </Grid>
-
-        {/* Recent Transactions Table */}
-        <Grid item xs={12} md={6}>
-          <Card sx={{ boxShadow: 3, borderRadius: 2 }}>
+        <Grid item xs={12} sm={12} md={6} lg={6}>
+          <Card sx={{ boxShadow: 3, borderRadius: 2, width: "100%" }}>
             <CardContent>
               <Typography
                 variant="h6"
