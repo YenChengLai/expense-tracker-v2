@@ -44,6 +44,8 @@ def get_expenses(
     db: Annotated[Database, Depends(get_db)],
     date_gte: str | None = None,
     date_lte: str | None = None,
+    category: str | None = None,
+    type: str | None = None,
 ) -> list[Expense]:
     query: dict = {"userId": current_user.userId}
     if date_gte:
@@ -52,6 +54,10 @@ def get_expenses(
     if date_lte:
         query["date"] = query.get("date", {})
         query["date"].update({"$lte": date_lte})
+    if category:
+        query["category"] = category
+    if type:
+        query["type"] = type
     expenses = db.expense.find(query)
     return [
         Expense(

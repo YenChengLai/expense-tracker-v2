@@ -41,12 +41,19 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import ClearIcon from "@mui/icons-material/Clear";
 
 function Expenses({ token }) {
+  // Get current month’s first and last day
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const defaultStartDate = firstDay.toISOString().split("T")[0]; // e.g., 2025-05-01
+  const defaultEndDate = lastDay.toISOString().split("T")[0]; // e.g., 2025-05-31
+
   const [expenses, setExpenses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [newRecord, setNewRecord] = useState({
     amount: "",
     category: "",
-    date: new Date().toISOString().split("T")[0],
+    date: today.toISOString().split("T")[0],
     description: "",
     type: "Expense",
   });
@@ -57,9 +64,10 @@ function Expenses({ token }) {
   const [selectedExpenses, setSelectedExpenses] = useState([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [filters, setFilters] = useState({
-    startDate: "",
-    endDate: "",
+    startDate: defaultStartDate,
+    endDate: defaultEndDate,
     category: "",
     type: "",
   });
@@ -73,7 +81,67 @@ function Expenses({ token }) {
     severity: "success",
   });
 
-  // Debounce filter updates to prevent rapid API calls
+  // Validate date format (YYYY-MM-DD)
+  const isValidDate = (dateStr) => {
+    const regex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!regex.test(dateStr)) return false;
+    const date = new Date(dateStr);
+    return date instanceof Date && !isNaN(date);
+  };
+
+  // Validate date range (max 31 days)
+  const isValidDateRange = (start, end) => {
+    if (!start || !end) return true;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+    return diffDays <= 31 && diffDays >= 0;
+  };
+
+  // Adjust date range to ensure ≤ 31 days and startDate <= endDate
+  const adjustDateRange = (newDate, field, currentStart, currentEnd) => {
+    if (!isValidDate(newDate)) {
+      return { startDate: currentStart, endDate: currentEnd };
+    }
+
+    let newStart = field === "startDate" ? newDate : currentStart;
+    let newEnd = field === "endDate" ? newDate : currentEnd;
+
+    if (field === "startDate") {
+      const startDate = new Date(newStart);
+      const endDate = new Date(newEnd);
+      // If startDate > endDate, set endDate = startDate
+      if (startDate > endDate) {
+        newEnd = newStart;
+      } else {
+        // If range > 31 days, set endDate = startDate + 30 days
+        const diffDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+        if (diffDays > 31) {
+          const adjustedEnd = new Date(startDate);
+          adjustedEnd.setDate(startDate.getDate() + 30);
+          newEnd = adjustedEnd.toISOString().split("T")[0];
+        }
+      }
+    } else if (field === "endDate") {
+      const startDate = new Date(newStart);
+      const endDate = new Date(newEnd);
+      // If endDate < startDate, set startDate = endDate
+      if (endDate < startDate) {
+        newStart = newEnd;
+      } else {
+        // If range > 31 days, set startDate = endDate - 30 days
+        const diffDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+        if (diffDays > 31) {
+          const adjustedStart = new Date(endDate);
+          adjustedStart.setDate(endDate.getDate() - 30);
+          newStart = adjustedStart.toISOString().split("T")[0];
+        }
+      }
+    }
+
+    return { startDate: newStart, endDate: newEnd };
+  };
+
   useEffect(() => {
     const fetchCategories = async () => {
       setIsLoading(true);
@@ -101,13 +169,28 @@ function Expenses({ token }) {
         });
         setError(err.response?.data?.detail || "Failed to load categories.");
         setCategories([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const fetchExpenses = async () => {
-      setIsLoading(true);
+      setFilterLoading(true);
       setError("");
       try {
+        // Validate dates
+        if (filters.startDate && !isValidDate(filters.startDate)) {
+          throw new Error("Invalid start date format. Use YYYY-MM-DD.");
+        }
+        if (filters.endDate && !isValidDate(filters.endDate)) {
+          throw new Error("Invalid end date format. Use YYYY-MM-DD.");
+        }
+        if (!isValidDateRange(filters.startDate, filters.endDate)) {
+          throw new Error(
+            "Date range must not exceed 31 days and start date must be before end date."
+          );
+        }
+
         const params = {};
         if (filters.startDate) params.date_gte = filters.startDate;
         if (filters.endDate) params.date_lte = filters.endDate;
@@ -124,7 +207,7 @@ function Expenses({ token }) {
           ? response.data
           : [];
         setExpenses(fetchedExpenses);
-        setSelectedExpenses([]); // Reset selections on filter change
+        setSelectedExpenses([]);
       } catch (err) {
         console.error("Fetch Expenses Error:", {
           message: err.message,
@@ -136,17 +219,21 @@ function Expenses({ token }) {
             : null,
           request: err.request ? err.request : null,
         });
-        setError(err.response?.data?.detail || "Failed to load expenses.");
+        setError(
+          err.response?.data?.detail ||
+            err.message ||
+            "Failed to load expenses."
+        );
         setExpenses([]);
       } finally {
-        setIsLoading(false);
+        setFilterLoading(false);
       }
     };
 
     const timer = setTimeout(() => {
       fetchCategories();
       fetchExpenses();
-    }, 300);
+    }, 150);
 
     return () => clearTimeout(timer);
   }, [token, filters]);
@@ -154,6 +241,10 @@ function Expenses({ token }) {
   const handleAddRecord = async () => {
     if (!newRecord.amount || !newRecord.category || !newRecord.date) {
       setError("Amount, category, and date are required.");
+      return;
+    }
+    if (!isValidDate(newRecord.date)) {
+      setError("Invalid date format. Use YYYY-MM-DD.");
       return;
     }
     setIsLoading(true);
@@ -175,7 +266,7 @@ function Expenses({ token }) {
         setNewRecord({
           amount: "",
           category: "",
-          date: new Date().toISOString().split("T")[0],
+          date: today.toISOString().split("T")[0],
           description: "",
           type: "Expense",
         });
@@ -213,6 +304,10 @@ function Expenses({ token }) {
   const handleEditRecord = async () => {
     if (!editRecord.amount || !editRecord.category || !editRecord.date) {
       setError("Amount, category, and date are required.");
+      return;
+    }
+    if (!isValidDate(editRecord.date)) {
+      setError("Invalid date format. Use YYYY-MM-DD.");
       return;
     }
     setIsLoading(true);
@@ -353,8 +448,8 @@ function Expenses({ token }) {
 
   const handleResetFilters = () => {
     setFilters({
-      startDate: "",
-      endDate: "",
+      startDate: defaultStartDate,
+      endDate: defaultEndDate,
       category: "",
       type: "",
     });
@@ -362,7 +457,9 @@ function Expenses({ token }) {
   };
 
   const activeFilters = useMemo(() => {
-    const count = Object.values(filters).filter((val) => val !== "").length;
+    const count = [filters.category, filters.type].filter(
+      (val) => val !== ""
+    ).length;
     return count > 0 ? count : null;
   }, [filters]);
 
@@ -420,7 +517,7 @@ function Expenses({ token }) {
           mx: "auto",
         }}
       >
-        <CardContent sx={{ p: 4 }}>
+        <CardContent sx={{ p: 4, position: "relative" }}>
           <Box
             sx={{
               display: "flex",
@@ -444,6 +541,12 @@ function Expenses({ token }) {
               <FilterListIcon />
             </IconButton>
           </Box>
+          {filterLoading && (
+            <CircularProgress
+              size={24}
+              sx={{ position: "absolute", top: 16, right: 16 }}
+            />
+          )}
           <Collapse in={filterOpen}>
             <Grid container spacing={4} sx={{ mb: 2 }}>
               <Grid item xs={12} md={6}>
@@ -451,19 +554,27 @@ function Expenses({ token }) {
                   label="Start Date"
                   type="date"
                   value={filters.startDate}
-                  onChange={(e) =>
-                    setFilters({ ...filters, startDate: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const { startDate, endDate } = adjustDateRange(
+                      e.target.value,
+                      "startDate",
+                      filters.startDate,
+                      filters.endDate
+                    );
+                    setFilters({ ...filters, startDate, endDate });
+                  }}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   disabled={isLoading}
                   variant="outlined"
+                  inputProps={{
+                    "aria-label": "Start Date",
+                  }}
                   sx={{
                     "& .MuiInputLabel-root": { fontSize: "1rem" },
                     "& .MuiOutlinedInput-root": { borderRadius: 1, height: 56 },
                     my: 1,
                   }}
-                  inputProps={{ "aria-label": "Start Date" }}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
@@ -471,19 +582,27 @@ function Expenses({ token }) {
                   label="End Date"
                   type="date"
                   value={filters.endDate}
-                  onChange={(e) =>
-                    setFilters({ ...filters, endDate: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const { startDate, endDate } = adjustDateRange(
+                      e.target.value,
+                      "endDate",
+                      filters.startDate,
+                      filters.endDate
+                    );
+                    setFilters({ ...filters, startDate, endDate });
+                  }}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                   disabled={isLoading}
                   variant="outlined"
+                  inputProps={{
+                    "aria-label": "End Date",
+                  }}
                   sx={{
                     "& .MuiInputLabel-root": { fontSize: "1rem" },
                     "& .MuiOutlinedInput-root": { borderRadius: 1, height: 56 },
                     my: 1,
                   }}
-                  inputProps={{ "aria-label": "End Date" }}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
@@ -502,7 +621,7 @@ function Expenses({ token }) {
                     sx={{ borderRadius: 1, height: 56 }}
                     inputProps={{ "aria-label": "Category Filter" }}
                   >
-                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value=""> </MenuItem>
                     {Array.isArray(categories) && categories.length > 0 ? (
                       categories.map((cat) => (
                         <MenuItem key={cat.name} value={cat.name}>
@@ -531,29 +650,31 @@ function Expenses({ token }) {
                     sx={{ borderRadius: 1, height: 56 }}
                     inputProps={{ "aria-label": "Type Filter" }}
                   >
-                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value=""> </MenuItem>
                     <MenuItem value="Expense">Expense</MenuItem>
                     <MenuItem value="Income">Income</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  startIcon={<ClearIcon />}
-                  onClick={handleResetFilters}
-                  disabled={isLoading}
-                  sx={{
-                    px: 4,
-                    py: 1,
-                    borderRadius: 1,
-                    textTransform: "none",
-                    fontSize: "1rem",
-                  }}
-                >
-                  Reset Filters
-                </Button>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    startIcon={<ClearIcon />}
+                    onClick={handleResetFilters}
+                    disabled={isLoading || filterLoading}
+                    sx={{
+                      px: 4,
+                      py: 1,
+                      borderRadius: 1,
+                      textTransform: "none",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    Reset Filters
+                  </Button>
+                </Box>
               </Grid>
             </Grid>
           </Collapse>
@@ -587,7 +708,7 @@ function Expenses({ token }) {
                 placeholder="Search expenses"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                disabled={isLoading}
+                disabled={isLoading || filterLoading}
                 inputProps={{ "aria-label": "Search expenses" }}
               />
               <IconButton sx={{ p: "10px" }} aria-label="search">
@@ -599,7 +720,7 @@ function Expenses({ token }) {
                 variant="contained"
                 color="secondary"
                 onClick={() => setBulkDeleteDialog(true)}
-                disabled={isLoading}
+                disabled={isLoading || filterLoading}
                 sx={{
                   ml: 2,
                   px: 4,
@@ -613,13 +734,12 @@ function Expenses({ token }) {
               </Button>
             )}
           </Box>
-
-          {isLoading ? (
+          {isLoading || filterLoading ? (
             <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
               <CircularProgress />
             </Box>
           ) : (
-            <>
+            <Box>
               <Box sx={{ display: { xs: "none", sm: "block" } }}>
                 <Table sx={{ minWidth: 650 }}>
                   <TableHead
@@ -647,7 +767,7 @@ function Expenses({ token }) {
                               setSelectedExpenses([]);
                             }
                           }}
-                          disabled={isLoading}
+                          disabled={isLoading || filterLoading}
                           inputProps={{ "aria-label": "Select all expenses" }}
                         />
                       </TableCell>
@@ -716,7 +836,7 @@ function Expenses({ token }) {
                                   );
                                 }
                               }}
-                              disabled={isLoading}
+                              disabled={isLoading || filterLoading}
                               inputProps={{
                                 "aria-label": `Select expense ${expense.id}`,
                               }}
@@ -744,10 +864,11 @@ function Expenses({ token }) {
                                 setEditRecord({
                                   ...expense,
                                   amount: expense.amount.toString(),
+                                  date: expense.date.split("T")[0],
                                 });
                                 setDialogOpen(true);
                               }}
-                              disabled={isLoading}
+                              disabled={isLoading || filterLoading}
                               color="primary"
                               aria-label={`Edit expense ${expense.id}`}
                             >
@@ -757,7 +878,7 @@ function Expenses({ token }) {
                               onClick={() =>
                                 setDeleteDialog({ open: true, id: expense.id })
                               }
-                              disabled={isLoading}
+                              disabled={isLoading || filterLoading}
                               color="secondary"
                               aria-label={`Delete expense ${expense.id}`}
                             >
@@ -818,7 +939,7 @@ function Expenses({ token }) {
                                 );
                               }
                             }}
-                            disabled={isLoading}
+                            disabled={isLoading || filterLoading}
                             inputProps={{
                               "aria-label": `Select expense ${expense.id}`,
                             }}
@@ -855,10 +976,11 @@ function Expenses({ token }) {
                               setEditRecord({
                                 ...expense,
                                 amount: expense.amount.toString(),
+                                date: expense.date.split("T")[0],
                               });
                               setDialogOpen(true);
                             }}
-                            disabled={isLoading}
+                            disabled={isLoading || filterLoading}
                             size="small"
                             sx={{ textTransform: "none" }}
                             aria-label={`Edit expense ${expense.id}`}
@@ -872,7 +994,7 @@ function Expenses({ token }) {
                             onClick={() =>
                               setDeleteDialog({ open: true, id: expense.id })
                             }
-                            disabled={isLoading}
+                            disabled={isLoading || filterLoading}
                             size="small"
                             sx={{ textTransform: "none" }}
                             aria-label={`Delete expense ${expense.id}`}
@@ -891,7 +1013,7 @@ function Expenses({ token }) {
                   </Box>
                 )}
               </Box>
-            </>
+            </Box>
           )}
         </CardContent>
       </Card>
@@ -904,7 +1026,7 @@ function Expenses({ token }) {
           setNewRecord({
             amount: "",
             category: "",
-            date: new Date().toISOString().split("T")[0],
+            date: today.toISOString().split("T")[0],
             description: "",
             type: "Expense",
           });
@@ -1022,7 +1144,9 @@ function Expenses({ token }) {
                   "& .MuiOutlinedInput-root": { borderRadius: 1, height: 56 },
                   my: 1,
                 }}
-                inputProps={{ "aria-label": "Date" }}
+                inputProps={{
+                  "aria-label": "Date",
+                }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -1084,7 +1208,7 @@ function Expenses({ token }) {
               setNewRecord({
                 amount: "",
                 category: "",
-                date: new Date().toISOString().split("T")[0],
+                date: today.toISOString().split("T")[0],
                 description: "",
                 type: "Expense",
               });
