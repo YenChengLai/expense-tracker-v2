@@ -14,7 +14,10 @@ import {
   Alert,
   Tooltip,
   Chip,
+  IconButton,
 } from "@mui/material";
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 
 function Calendar({ token }) {
   const [expenses, setExpenses] = useState({});
@@ -101,19 +104,41 @@ function Calendar({ token }) {
     }
   }
 
+  const handlePrevMonth = () => {
+    setCurrentMonth((prev) => (prev === 0 ? 11 : prev - 1));
+    if (currentMonth === 0) {
+      setCurrentYear((prev) => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth((prev) => (prev === 11 ? 0 : prev + 1));
+    if (currentMonth === 11) {
+      setCurrentYear((prev) => prev + 1);
+    }
+  };
+
   return (
     <Box
       sx={{ p: 3, backgroundColor: "background.default", minHeight: "100vh" }}
     >
       <Card>
         <CardContent>
-          <Typography variant="h5" gutterBottom>
-            Calendar -{" "}
-            {new Date(currentYear, currentMonth).toLocaleString("en-US", {
-              month: "long",
-              year: "numeric",
-            })}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <IconButton onClick={handlePrevMonth} disabled={loading}>
+              <ArrowBackIosIcon />
+            </IconButton>
+            <Typography variant="h5" sx={{ flexGrow: 1, textAlign: "center" }}>
+              Calendar -{" "}
+              {new Date(currentYear, currentMonth).toLocaleString("en-US", {
+                month: "long",
+                year: "numeric",
+              })}
+            </Typography>
+            <IconButton onClick={handleNextMonth} disabled={loading}>
+              <ArrowForwardIosIcon />
+            </IconButton>
+          </Box>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
@@ -144,7 +169,7 @@ function Calendar({ token }) {
                           textAlign: "center",
                           fontWeight: "bold",
                           backgroundColor: "background.paper",
-                          width: "14.28%", // Approximately 1/7th of the total width
+                          width: "14.28%",
                         }}
                       >
                         {day}
@@ -168,7 +193,7 @@ function Calendar({ token }) {
                             ? "background.default"
                             : "background.paper",
                           p: 1,
-                          width: "14.28%", // Fixed width for each day cell
+                          width: "14.28%",
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                         }}
@@ -220,7 +245,7 @@ function Calendar({ token }) {
                                       mb: 0.5,
                                       display: "block",
                                       cursor: "pointer",
-                                      width: "100%", // Ensure chips use full cell width
+                                      width: "100%",
                                       overflow: "hidden",
                                       textOverflow: "ellipsis",
                                     }}

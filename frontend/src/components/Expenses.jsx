@@ -1,517 +1,1163 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import {
   Card,
   CardContent,
   Typography,
+  TextField,
+  Button,
+  Alert,
+  Box,
   Table,
   TableBody,
   TableCell,
-  TableRow,
   TableHead,
-  Button,
-  Box,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Alert,
+  TableRow,
   IconButton,
-  Snackbar,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  Fade,
+  Collapse,
+  CircularProgress,
+  Paper,
+  InputBase,
+  Chip,
+  TableSortLabel,
+  Snackbar,
+  Grid,
 } from "@mui/material";
-import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
-import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
+import FilterListIcon from "@mui/icons-material/FilterList";
+import ClearIcon from "@mui/icons-material/Clear";
 
-function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
-  const [transactions, setTransactions] = useState([]);
-  const [formOpen, setFormOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    id: null,
+function Expenses({ token }) {
+  const [expenses, setExpenses] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [newRecord, setNewRecord] = useState({
     amount: "",
     category: "",
-    type: "",
-    date: "",
+    date: new Date().toISOString().split("T")[0],
     description: "",
+    type: "Expense",
   });
-  const [categories, setCategories] = useState([]);
-  const [recentCategories, setRecentCategories] = useState([]);
-  const [newCategory, setNewCategory] = useState("");
-  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [editRecord, setEditRecord] = useState(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, id: null });
+  const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false);
+  const [selectedExpenses, setSelectedExpenses] = useState([]);
   const [error, setError] = useState("");
-  const [categoryError, setCategoryError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    startDate: "",
+    endDate: "",
+    category: "",
+    type: "",
+  });
+  const [sortBy, setSortBy] = useState("date");
+  const [sortDirection, setSortDirection] = useState("desc");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
-  const [editingId, setEditingId] = useState(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [deleteId, setDeleteId] = useState(null);
 
+  // Debounce filter updates to prevent rapid API calls
   useEffect(() => {
-    const fetchTransactions = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axios.get("http://127.0.0.1:8001/expense", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setTransactions(response.data || []);
-      } catch (err) {
-        setError("Failed to load transactions. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
     const fetchCategories = async () => {
+      setIsLoading(true);
+      setError("");
       try {
         const response = await axios.get("http://127.0.0.1:8001/categories", {
           headers: { Authorization: `Bearer ${token}` },
           params: { show_universal: true },
         });
-        setCategories(response.data.map((cat) => cat.name) || []);
+        console.log("Categories API Response:", response.data);
+        const fetchedCategories = Array.isArray(response.data)
+          ? response.data
+          : [];
+        setCategories(fetchedCategories);
       } catch (err) {
-        setCategoryError("Failed to load categories. Please try again.");
+        console.error("Fetch Categories Error:", {
+          message: err.message,
+          response: err.response
+            ? {
+                status: err.response.status,
+                data: err.response.data,
+              }
+            : null,
+          request: err.request ? err.request : null,
+        });
+        setError(err.response?.data?.detail || "Failed to load categories.");
+        setCategories([]);
       }
     };
-    fetchTransactions();
-    fetchCategories();
-    setRecentCategories(
-      JSON.parse(localStorage.getItem("recentCategories") || "[]")
-    );
-  }, [token]);
 
-  const handleCategoryChange = (event) => {
-    const value = event.target.value;
-    setShowNewCategoryInput(value === "__add_new");
-    setFormData({ ...formData, category: value === "__add_new" ? "" : value });
-  };
+    const fetchExpenses = async () => {
+      setIsLoading(true);
+      setError("");
+      try {
+        const params = {};
+        if (filters.startDate) params.date_gte = filters.startDate;
+        if (filters.endDate) params.date_lte = filters.endDate;
+        if (filters.category) params.category = filters.category;
+        if (filters.type) params.type = filters.type;
+        console.log("Fetch Expenses Params:", params);
 
-  const handleAddCategory = async () => {
-    if (!newCategory.trim()) {
-      setCategoryError("Category name cannot be empty.");
-      return;
-    }
-    setIsLoading(true);
-    setCategoryError("");
-    try {
-      const response = await axios.post(
-        "http://127.0.0.1:8001/categories",
-        { name: newCategory.trim() },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const newCat = response.data.name;
-      setCategories([...categories, newCat]);
-      setFormData({ ...formData, category: newCat });
-      setNewCategory("");
-      setShowNewCategoryInput(false);
-      onCategoryAdded(newCat);
-    } catch (err) {
-      setCategoryError(
-        err.response?.data?.detail === "Category already exists for this user"
-          ? `Category '${newCategory}' already exists. Please choose it from the list.`
-          : "Failed to add category. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+        const response = await axios.get("http://127.0.0.1:8001/expense", {
+          headers: { Authorization: `Bearer ${token}` },
+          params,
+        });
+        console.log("Expenses API Response:", response.data);
+        const fetchedExpenses = Array.isArray(response.data)
+          ? response.data
+          : [];
+        setExpenses(fetchedExpenses);
+        setSelectedExpenses([]); // Reset selections on filter change
+      } catch (err) {
+        console.error("Fetch Expenses Error:", {
+          message: err.message,
+          response: err.response
+            ? {
+                status: err.response.status,
+                data: err.response.data,
+              }
+            : null,
+          request: err.request ? err.request : null,
+        });
+        setError(err.response?.data?.detail || "Failed to load expenses.");
+        setExpenses([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (
-      !formData.category ||
-      formData.category === "__add_new" ||
-      !formData.amount ||
-      !formData.type ||
-      !formData.date
-    ) {
-      setError("All fields are required.");
-      return;
-    }
-    if (isNaN(parseFloat(formData.amount))) {
-      setError("Please enter a valid amount.");
+    const timer = setTimeout(() => {
+      fetchCategories();
+      fetchExpenses();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [token, filters]);
+
+  const handleAddRecord = async () => {
+    if (!newRecord.amount || !newRecord.category || !newRecord.date) {
+      setError("Amount, category, and date are required.");
       return;
     }
     setIsLoading(true);
     setError("");
     try {
-      const payload = {
-        amount: parseFloat(formData.amount),
-        category: formData.category,
-        type: formData.type,
-        date: formData.date,
-        description: formData.description || null,
-      };
-      let response;
-      if (editingId) {
-        response = await axios.put(
-          `http://127.0.0.1:8001/expense/${editingId}`,
-          payload,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        onRecordUpdated(`Record with ID ${editingId} updated successfully!`);
-        setTransactions(
-          transactions.map((tx) => (tx.id === editingId ? response.data : tx))
-        );
+      const response = await axios.post(
+        "http://127.0.0.1:8001/expense",
+        { ...newRecord, amount: parseFloat(newRecord.amount) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      console.log("Add Expense Response:", response);
+      if (
+        response.status >= 200 &&
+        response.status < 300 &&
+        response.data &&
+        typeof response.data === "object"
+      ) {
+        setExpenses([...expenses, response.data]);
+        setNewRecord({
+          amount: "",
+          category: "",
+          date: new Date().toISOString().split("T")[0],
+          description: "",
+          type: "Expense",
+        });
+        setDialogOpen(false);
+        setSnackbar({
+          open: true,
+          message: "Expense added successfully!",
+          severity: "success",
+        });
+        setTimeout(() => setError(""), 100);
       } else {
-        response = await onRecordAdded(payload);
-        setTransactions([...transactions, response]);
-        const updatedRecent = [
-          formData.category,
-          ...recentCategories.filter((cat) => cat !== formData.category),
-        ].slice(0, 5);
-        localStorage.setItem("recentCategories", JSON.stringify(updatedRecent));
-        setRecentCategories(updatedRecent);
+        throw new Error(`Unexpected response: ${response.status}`);
       }
-      setFormData({
-        id: null,
-        amount: "",
-        category: "",
-        type: "",
-        date: "",
-        description: "",
-      });
-      setFormOpen(false);
-      setEditingId(null);
     } catch (err) {
-      setError(err.message || "Failed to save record. Please try again.");
+      console.error("Add Expense Error:", {
+        message: err.message,
+        response: err.response
+          ? {
+              status: err.response.status,
+              data: err.response.data,
+            }
+          : null,
+        request: err.request ? err.request : null,
+      });
+      if (err.response && err.response.status >= 400) {
+        setError(err.response?.data?.detail || "Failed to add expense.");
+      } else {
+        setError("Unexpected error adding expense.");
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleEdit = (tx) => {
-    setEditingId(tx.id);
-    setFormData({
-      id: tx.id,
-      amount: tx.amount,
-      category: tx.category,
-      type: tx.type,
-      date: tx.date,
-      description: tx.description || "",
-    });
-    setFormOpen(true);
-  };
-
-  const handleDelete = async (id) => {
+  const handleEditRecord = async () => {
+    if (!editRecord.amount || !editRecord.category || !editRecord.date) {
+      setError("Amount, category, and date are required.");
+      return;
+    }
     setIsLoading(true);
+    setError("");
     try {
-      await axios.delete(`http://127.0.0.1:8001/expense/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setTransactions(transactions.filter((tx) => tx.id !== id));
+      const response = await axios.put(
+        `http://127.0.0.1:8001/expense/${editRecord.id}`,
+        { ...editRecord, amount: parseFloat(editRecord.amount) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setExpenses(
+        expenses.map((exp) => (exp.id === editRecord.id ? response.data : exp))
+      );
+      setEditRecord(null);
+      setDialogOpen(false);
       setSnackbar({
         open: true,
-        message: "Record deleted successfully!",
+        message: "Expense updated successfully!",
         severity: "success",
       });
     } catch (err) {
-      setError("Failed to delete record. Please try again.");
+      console.error("Edit Expense Error:", {
+        message: err.message,
+        response: err.response
+          ? {
+              status: err.response.status,
+              data: err.response.data,
+            }
+          : null,
+        request: err.request ? err.request : null,
+      });
+      setError(err.response?.data?.detail || "Failed to update expense.");
     } finally {
       setIsLoading(false);
     }
-    setDeleteConfirmOpen(false);
-    setDeleteId(null);
   };
 
-  const handleDeleteClick = (id) => {
-    setDeleteId(id);
-    setDeleteConfirmOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    setFormOpen(false);
-    // Delay state reset to prevent title flash
-    setTimeout(() => {
-      setFormData({
-        id: null,
-        amount: "",
-        category: "",
-        type: "",
-        date: "",
-        description: "",
+  const handleDeleteRecord = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      await axios.delete(`http://127.0.0.1:8001/expense/${deleteDialog.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setEditingId(null);
-      setError("");
-      setCategoryError("");
-      setShowNewCategoryInput(false);
-      setNewCategory("");
-    }, 100);
+      setExpenses(expenses.filter((exp) => exp.id !== deleteDialog.id));
+      setDeleteDialog({ open: false, id: null });
+      setSnackbar({
+        open: true,
+        message: "Expense deleted successfully!",
+        severity: "success",
+      });
+    } catch (err) {
+      console.error("Delete Expense Error:", {
+        message: err.message,
+        response: err.response
+          ? {
+              status: err.response.status,
+              data: err.response.data,
+            }
+          : null,
+        request: err.request ? err.request : null,
+      });
+      setError(err.response?.data?.detail || "Failed to delete expense.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCloseDeleteConfirm = () => {
-    setDeleteConfirmOpen(false);
-    setDeleteId(null);
+  const handleBulkDelete = async () => {
+    setIsLoading(true);
+    setError("");
+    try {
+      for (const id of selectedExpenses) {
+        await axios.delete(`http://127.0.0.1:8001/expense/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+      setExpenses(expenses.filter((exp) => !selectedExpenses.includes(exp.id)));
+      setSelectedExpenses([]);
+      setBulkDeleteDialog(false);
+      setSnackbar({
+        open: true,
+        message: "Selected expenses deleted successfully!",
+        severity: "success",
+      });
+    } catch (err) {
+      console.error("Bulk Delete Error:", {
+        message: err.message,
+        response: err.response
+          ? {
+              status: err.response.status,
+              data: err.response.data,
+            }
+          : null,
+        request: err.request ? err.request : null,
+      });
+      setError(err.response?.data?.detail || "Failed to delete expenses.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleCloseSnackbar = () => {
-    setSnackbar({ open: false, message: "", severity: "success" });
+  const handleSort = (property) => {
+    const isAsc = sortBy === property && sortDirection === "asc";
+    setSortDirection(isAsc ? "desc" : "asc");
+    setSortBy(property);
+    setExpenses(
+      [...expenses].sort((a, b) => {
+        if (property === "amount") {
+          return isAsc ? a.amount - b.amount : b.amount - a.amount;
+        }
+        if (property === "date") {
+          return isAsc
+            ? new Date(a.date) - new Date(b.date)
+            : new Date(b.date) - new Date(a.date);
+        }
+        if (property === "category") {
+          return isAsc
+            ? a.category.localeCompare(b.category)
+            : b.category.localeCompare(a.category);
+        }
+        return 0;
+      })
+    );
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US");
+  const filteredExpenses = useMemo(() => {
+    if (!Array.isArray(expenses)) {
+      console.warn("Expenses is not an array:", expenses);
+      return [];
+    }
+    return expenses.filter((exp) =>
+      `${exp.description || ""} ${exp.category}`
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+    );
+  }, [expenses, searchQuery]);
+
+  const handleResetFilters = () => {
+    setFilters({
+      startDate: "",
+      endDate: "",
+      category: "",
+      type: "",
+    });
+    setSearchQuery("");
+  };
+
+  const activeFilters = useMemo(() => {
+    const count = Object.values(filters).filter((val) => val !== "").length;
+    return count > 0 ? count : null;
+  }, [filters]);
+
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === "clickaway") return;
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Card sx={{ boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)" }}>
-        <CardContent>
-          <Typography variant="h5" gutterBottom>
-            Expenses
-          </Typography>
-          {(error || categoryError) && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error || categoryError}
-            </Alert>
-          )}
-          {isLoading && (
-            <Box display="flex" justifyContent="center" mb={2}>
-              <CircularProgress />
-            </Box>
-          )}
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Amount</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {transactions.map((tx) => (
-                <TableRow key={tx.id}>
-                  <TableCell
-                    sx={{ color: tx.type === "Expense" ? "red" : "green" }}
-                  >
-                    {`${tx.amount} USD`}
-                  </TableCell>
-                  <TableCell>{tx.category}</TableCell>
-                  <TableCell>{tx.type}</TableCell>
-                  <TableCell>{formatDate(tx.date)}</TableCell>
-                  <TableCell>{tx.description || "-"}</TableCell>
-                  <TableCell>
-                    <IconButton
-                      color="primary"
-                      aria-label="edit"
-                      onClick={() => handleEdit(tx)}
-                    >
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton
-                      color="error"
-                      aria-label="delete"
-                      onClick={() => handleDeleteClick(tx.id)}
-                    >
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => setFormOpen(true)}
-            sx={{ mt: 2 }}
+    <Box
+      sx={{
+        p: { xs: 2, sm: 4 },
+        backgroundColor: "background.default",
+        minHeight: "100vh",
+      }}
+    >
+      <Typography variant="h4" gutterBottom sx={{ mb: 4, fontWeight: "bold" }}>
+        Expenses
+      </Typography>
+      {error && (
+        <Fade in={!!error}>
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        </Fade>
+      )}
+
+      <Box sx={{ mb: 3 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<AddIcon />}
+          onClick={() => setDialogOpen(true)}
+          disabled={isLoading || categories.length === 0}
+          sx={{
+            mb: 2,
+            px: 4,
+            py: 1,
+            borderRadius: 1,
+            textTransform: "none",
+            fontSize: "1rem",
+            "&:hover": { backgroundColor: "primary.dark" },
+          }}
+        >
+          Add Record
+        </Button>
+      </Box>
+
+      <Card
+        sx={{
+          mb: 3,
+          boxShadow: 3,
+          borderRadius: 2,
+          maxWidth: 1200,
+          mx: "auto",
+        }}
+      >
+        <CardContent sx={{ p: 4 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 3,
+            }}
           >
-            Add Record
-          </Button>
+            <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+              Filters
+              {activeFilters && (
+                <Chip
+                  label={`${activeFilters} active`}
+                  color="primary"
+                  size="small"
+                  sx={{ ml: 1 }}
+                />
+              )}
+            </Typography>
+            <IconButton onClick={() => setFilterOpen(!filterOpen)}>
+              <FilterListIcon />
+            </IconButton>
+          </Box>
+          <Collapse in={filterOpen}>
+            <Grid container spacing={4} sx={{ mb: 2 }}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="Start Date"
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, startDate: e.target.value })
+                  }
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  disabled={isLoading}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiInputLabel-root": { fontSize: "1rem" },
+                    "& .MuiOutlinedInput-root": { borderRadius: 1, height: 56 },
+                    my: 1,
+                  }}
+                  inputProps={{ "aria-label": "Start Date" }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  label="End Date"
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) =>
+                    setFilters({ ...filters, endDate: e.target.value })
+                  }
+                  fullWidth
+                  InputLabelProps={{ shrink: true }}
+                  disabled={isLoading}
+                  variant="outlined"
+                  sx={{
+                    "& .MuiInputLabel-root": { fontSize: "1rem" },
+                    "& .MuiOutlinedInput-root": { borderRadius: 1, height: 56 },
+                    my: 1,
+                  }}
+                  inputProps={{ "aria-label": "End Date" }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl
+                  fullWidth
+                  disabled={isLoading || categories.length === 0}
+                  sx={{ minWidth: 200, my: 1 }}
+                >
+                  <InputLabel sx={{ fontSize: "1rem" }}>Category</InputLabel>
+                  <Select
+                    value={filters.category}
+                    onChange={(e) =>
+                      setFilters({ ...filters, category: e.target.value })
+                    }
+                    label="Category"
+                    sx={{ borderRadius: 1, height: 56 }}
+                    inputProps={{ "aria-label": "Category Filter" }}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {Array.isArray(categories) && categories.length > 0 ? (
+                      categories.map((cat) => (
+                        <MenuItem key={cat.name} value={cat.name}>
+                          {cat.name}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem disabled>No categories available</MenuItem>
+                    )}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl
+                  fullWidth
+                  disabled={isLoading}
+                  sx={{ minWidth: 200, my: 1 }}
+                >
+                  <InputLabel sx={{ fontSize: "1rem" }}>Type</InputLabel>
+                  <Select
+                    value={filters.type}
+                    onChange={(e) =>
+                      setFilters({ ...filters, type: e.target.value })
+                    }
+                    label="Type"
+                    sx={{ borderRadius: 1, height: 56 }}
+                    inputProps={{ "aria-label": "Type Filter" }}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="Expense">Expense</MenuItem>
+                    <MenuItem value="Income">Income</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<ClearIcon />}
+                  onClick={handleResetFilters}
+                  disabled={isLoading}
+                  sx={{
+                    px: 4,
+                    py: 1,
+                    borderRadius: 1,
+                    textTransform: "none",
+                    fontSize: "1rem",
+                  }}
+                >
+                  Reset Filters
+                </Button>
+              </Grid>
+            </Grid>
+          </Collapse>
         </CardContent>
       </Card>
 
-      {/* Dialog for Add/Edit Expense */}
+      <Card
+        sx={{
+          boxShadow: 3,
+          borderRadius: 2,
+          mb: 3,
+          maxWidth: 1200,
+          mx: "auto",
+        }}
+      >
+        <CardContent sx={{ p: 0 }}>
+          <Box sx={{ display: "flex", alignItems: "center", p: 2 }}>
+            <Paper
+              component="form"
+              sx={{
+                p: "2px 4px",
+                display: "flex",
+                alignItems: "center",
+                width: { xs: "100%", sm: 300 },
+                borderRadius: 1,
+                bgcolor: "background.paper",
+              }}
+            >
+              <InputBase
+                sx={{ ml: 1, flex: 1 }}
+                placeholder="Search expenses"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={isLoading}
+                inputProps={{ "aria-label": "Search expenses" }}
+              />
+              <IconButton sx={{ p: "10px" }} aria-label="search">
+                <SearchIcon />
+              </IconButton>
+            </Paper>
+            {selectedExpenses.length > 0 && (
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => setBulkDeleteDialog(true)}
+                disabled={isLoading}
+                sx={{
+                  ml: 2,
+                  px: 4,
+                  py: 1,
+                  borderRadius: 1,
+                  textTransform: "none",
+                  fontSize: "1rem",
+                }}
+              >
+                Delete Selected ({selectedExpenses.length})
+              </Button>
+            )}
+          </Box>
+
+          {isLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <Box sx={{ display: { xs: "none", sm: "block" } }}>
+                <Table sx={{ minWidth: 650 }}>
+                  <TableHead
+                    sx={{
+                      position: "sticky",
+                      top: 0,
+                      bgcolor: "background.paper",
+                      zIndex: 1,
+                    }}
+                  >
+                    <TableRow>
+                      <TableCell>
+                        <Checkbox
+                          checked={
+                            selectedExpenses.length ===
+                              filteredExpenses.length &&
+                            filteredExpenses.length > 0
+                          }
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedExpenses(
+                                filteredExpenses.map((exp) => exp.id)
+                              );
+                            } else {
+                              setSelectedExpenses([]);
+                            }
+                          }}
+                          disabled={isLoading}
+                          inputProps={{ "aria-label": "Select all expenses" }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortBy === "amount"}
+                          direction={
+                            sortBy === "amount" ? sortDirection : "asc"
+                          }
+                          onClick={() => handleSort("amount")}
+                        >
+                          Amount
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortBy === "category"}
+                          direction={
+                            sortBy === "category" ? sortDirection : "asc"
+                          }
+                          onClick={() => handleSort("category")}
+                        >
+                          Category
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={sortBy === "date"}
+                          direction={sortBy === "date" ? sortDirection : "asc"}
+                          onClick={() => handleSort("date")}
+                        >
+                          Date
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>Description</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Actions</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {Array.isArray(filteredExpenses) &&
+                    filteredExpenses.length > 0 ? (
+                      filteredExpenses.map((expense) => (
+                        <TableRow
+                          key={expense.id}
+                          sx={{
+                            "&:hover": {
+                              bgcolor: (theme) => theme.palette.grey[100],
+                            },
+                          }}
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedExpenses.includes(expense.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedExpenses([
+                                    ...selectedExpenses,
+                                    expense.id,
+                                  ]);
+                                } else {
+                                  setSelectedExpenses(
+                                    selectedExpenses.filter(
+                                      (id) => id !== expense.id
+                                    )
+                                  );
+                                }
+                              }}
+                              disabled={isLoading}
+                              inputProps={{
+                                "aria-label": `Select expense ${expense.id}`,
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>{expense.amount.toFixed(2)}</TableCell>
+                          <TableCell>{expense.category}</TableCell>
+                          <TableCell>
+                            {new Date(expense.date).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>{expense.description || "N/A"}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={expense.type}
+                              color={
+                                expense.type === "Expense" ? "error" : "success"
+                              }
+                              size="small"
+                              sx={{ fontWeight: "medium" }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <IconButton
+                              onClick={() => {
+                                setEditRecord({
+                                  ...expense,
+                                  amount: expense.amount.toString(),
+                                });
+                                setDialogOpen(true);
+                              }}
+                              disabled={isLoading}
+                              color="primary"
+                              aria-label={`Edit expense ${expense.id}`}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              onClick={() =>
+                                setDeleteDialog({ open: true, id: expense.id })
+                              }
+                              disabled={isLoading}
+                              color="secondary"
+                              aria-label={`Delete expense ${expense.id}`}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center">
+                          <Typography variant="body2" color="text.secondary">
+                            No expenses found.
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </Box>
+              <Box sx={{ display: { xs: "block", sm: "none" } }}>
+                {Array.isArray(filteredExpenses) &&
+                filteredExpenses.length > 0 ? (
+                  filteredExpenses.map((expense) => (
+                    <Card
+                      key={expense.id}
+                      sx={{
+                        mb: 2,
+                        boxShadow: 2,
+                        borderRadius: 2,
+                        "&:hover": {
+                          bgcolor: (theme) => theme.palette.grey[50],
+                        },
+                      }}
+                    >
+                      <CardContent sx={{ p: 2 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            mb: 1,
+                          }}
+                        >
+                          <Checkbox
+                            checked={selectedExpenses.includes(expense.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedExpenses([
+                                  ...selectedExpenses,
+                                  expense.id,
+                                ]);
+                              } else {
+                                setSelectedExpenses(
+                                  selectedExpenses.filter(
+                                    (id) => id !== expense.id
+                                  )
+                                );
+                              }
+                            }}
+                            disabled={isLoading}
+                            inputProps={{
+                              "aria-label": `Select expense ${expense.id}`,
+                            }}
+                          />
+                          <Chip
+                            label={expense.type}
+                            color={
+                              expense.type === "Expense" ? "error" : "success"
+                            }
+                            size="small"
+                            sx={{ fontWeight: "medium" }}
+                          />
+                        </Box>
+                        <Typography variant="body2">
+                          <strong>Amount:</strong> ${expense.amount.toFixed(2)}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Category:</strong> {expense.category}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Date:</strong>{" "}
+                          {new Date(expense.date).toLocaleDateString()}
+                        </Typography>
+                        <Typography variant="body2">
+                          <strong>Description:</strong>{" "}
+                          {expense.description || "N/A"}
+                        </Typography>
+                        <Box sx={{ mt: 2, display: "flex", gap: 1 }}>
+                          <Button
+                            variant="outlined"
+                            color="primary"
+                            startIcon={<EditIcon />}
+                            onClick={() => {
+                              setEditRecord({
+                                ...expense,
+                                amount: expense.amount.toString(),
+                              });
+                              setDialogOpen(true);
+                            }}
+                            disabled={isLoading}
+                            size="small"
+                            sx={{ textTransform: "none" }}
+                            aria-label={`Edit expense ${expense.id}`}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="secondary"
+                            startIcon={<DeleteIcon />}
+                            onClick={() =>
+                              setDeleteDialog({ open: true, id: expense.id })
+                            }
+                            disabled={isLoading}
+                            size="small"
+                            sx={{ textTransform: "none" }}
+                            aria-label={`Delete expense ${expense.id}`}
+                          >
+                            Delete
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  ))
+                ) : (
+                  <Box sx={{ p: 2, textAlign: "center" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No expenses found.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       <Dialog
-        open={formOpen}
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false);
+          setEditRecord(null);
+          setNewRecord({
+            amount: "",
+            category: "",
+            date: new Date().toISOString().split("T")[0],
+            description: "",
+            type: "Expense",
+          });
+          setError("");
+        }}
+        TransitionComponent={Fade}
+        transitionDuration={300}
+        maxWidth="lg"
         sx={{
           "& .MuiDialog-paper": {
-            borderRadius: 2,
-            p: 2,
+            width: { xs: "90%", sm: 600 },
+            maxWidth: 800,
           },
         }}
       >
-        <DialogTitle>{editingId ? "Edit Record" : "Add Record"}</DialogTitle>
-        <DialogContent>
-          {(error || categoryError) && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error || categoryError}
-            </Alert>
-          )}
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="en">
-            <Box component="form" onSubmit={handleSubmit}>
+        <DialogTitle>{editRecord ? "Edit Record" : "Add Record"}</DialogTitle>
+        <DialogContent sx={{ p: 4, minHeight: 400 }}>
+          <Grid container spacing={4} direction="column">
+            <Grid item xs={12}>
               <TextField
                 label="Amount"
-                type="number"
-                fullWidth
-                margin="normal"
-                value={formData.amount}
+                value={editRecord ? editRecord.amount : newRecord.amount}
                 onChange={(e) =>
-                  setFormData({ ...formData, amount: e.target.value })
+                  editRecord
+                    ? setEditRecord({ ...editRecord, amount: e.target.value })
+                    : setNewRecord({ ...newRecord, amount: e.target.value })
                 }
-                required
+                fullWidth
+                type="number"
                 disabled={isLoading}
+                error={editRecord ? !editRecord.amount : !newRecord.amount}
+                helperText={
+                  editRecord
+                    ? !editRecord.amount
+                      ? "Amount is required"
+                      : ""
+                    : !newRecord.amount
+                    ? "Amount is required"
+                    : ""
+                }
+                variant="outlined"
+                sx={{
+                  "& .MuiInputLabel-root": { fontSize: "1rem" },
+                  "& .MuiOutlinedInput-root": { borderRadius: 1, height: 56 },
+                  my: 1,
+                }}
+                inputProps={{ "aria-label": "Amount" }}
               />
-              <FormControl fullWidth margin="normal" disabled={isLoading}>
-                <InputLabel>Category</InputLabel>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl
+                fullWidth
+                disabled={isLoading || categories.length === 0}
+                sx={{ my: 1 }}
+              >
+                <InputLabel sx={{ fontSize: "1rem" }}>Category</InputLabel>
                 <Select
-                  value={formData.category || ""}
+                  value={editRecord ? editRecord.category : newRecord.category}
+                  onChange={(e) =>
+                    editRecord
+                      ? setEditRecord({
+                          ...editRecord,
+                          category: e.target.value,
+                        })
+                      : setNewRecord({
+                          ...newRecord,
+                          category: e.target.value,
+                        })
+                  }
                   label="Category"
-                  onChange={handleCategoryChange}
-                  required
+                  error={
+                    editRecord ? !editRecord.category : !newRecord.category
+                  }
+                  sx={{ borderRadius: 1, height: 56 }}
+                  inputProps={{ "aria-label": "Category" }}
                 >
-                  {recentCategories.length > 0 && (
-                    <MenuItem disabled value="">
-                      <em>Recent</em>
-                    </MenuItem>
+                  {Array.isArray(categories) && categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <MenuItem key={cat.name} value={cat.name}>
+                        {cat.name}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled>No categories available</MenuItem>
                   )}
-                  {recentCategories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat}
-                    </MenuItem>
-                  ))}
-                  <MenuItem disabled value="">
-                    <em>All</em>
-                  </MenuItem>
-                  {categories.map((cat) => (
-                    <MenuItem key={cat} value={cat}>
-                      {cat}
-                    </MenuItem>
-                  ))}
-                  <MenuItem value="__add_new">Add New Category</MenuItem>
                 </Select>
               </FormControl>
-              {showNewCategoryInput && (
-                <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                  <TextField
-                    label="New Category"
-                    type="text"
-                    fullWidth
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    disabled={isLoading}
-                  />
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    onClick={handleAddCategory}
-                    disabled={isLoading}
-                  >
-                    Add
-                  </Button>
-                </Box>
-              )}
-              <FormControl fullWidth margin="normal" disabled={isLoading}>
-                <InputLabel>Type</InputLabel>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Date"
+                type="date"
+                value={editRecord ? editRecord.date : newRecord.date}
+                onChange={(e) =>
+                  editRecord
+                    ? setEditRecord({ ...editRecord, date: e.target.value })
+                    : setNewRecord({ ...newRecord, date: e.target.value })
+                }
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                disabled={isLoading}
+                error={editRecord ? !editRecord.date : !newRecord.date}
+                helperText={
+                  editRecord
+                    ? !editRecord.date
+                      ? "Date is required"
+                      : ""
+                    : !newRecord.date
+                    ? "Date is required"
+                    : ""
+                }
+                variant="outlined"
+                sx={{
+                  "& .MuiInputLabel-root": { fontSize: "1rem" },
+                  "& .MuiOutlinedInput-root": { borderRadius: 1, height: 56 },
+                  my: 1,
+                }}
+                inputProps={{ "aria-label": "Date" }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth disabled={isLoading} sx={{ my: 1 }}>
+                <InputLabel sx={{ fontSize: "1rem" }}>Type</InputLabel>
                 <Select
-                  value={formData.type}
-                  label="Type"
+                  value={editRecord ? editRecord.type : newRecord.type}
                   onChange={(e) =>
-                    setFormData({ ...formData, type: e.target.value })
+                    editRecord
+                      ? setEditRecord({ ...editRecord, type: e.target.value })
+                      : setNewRecord({ ...newRecord, type: e.target.value })
                   }
-                  required
+                  label="Type"
+                  sx={{ borderRadius: 1, height: 56 }}
+                  inputProps={{ "aria-label": "Type" }}
                 >
                   <MenuItem value="Expense">Expense</MenuItem>
                   <MenuItem value="Income">Income</MenuItem>
                 </Select>
               </FormControl>
-              <DatePicker
-                label="Date"
-                value={formData.date ? dayjs(formData.date) : null}
-                onChange={(newValue) =>
-                  setFormData({
-                    ...formData,
-                    date: newValue ? newValue.format("YYYY-MM-DD") : "",
-                  })
-                }
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    margin: "normal",
-                    required: true,
-                    disabled: isLoading,
-                  },
-                }}
-              />
+            </Grid>
+            <Grid item xs={12}>
               <TextField
                 label="Description"
-                type="text"
-                fullWidth
-                margin="normal"
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
+                value={
+                  editRecord ? editRecord.description : newRecord.description
                 }
+                onChange={(e) =>
+                  editRecord
+                    ? setEditRecord({
+                        ...editRecord,
+                        description: e.target.value,
+                      })
+                    : setNewRecord({
+                        ...newRecord,
+                        description: e.target.value,
+                      })
+                }
+                fullWidth
+                multiline
+                rows={4}
                 disabled={isLoading}
+                variant="outlined"
+                sx={{
+                  "& .MuiInputLabel-root": { fontSize: "1rem" },
+                  "& .MuiOutlinedInput-root": { borderRadius: 1 },
+                  my: 1,
+                }}
+                inputProps={{ "aria-label": "Description" }}
               />
-            </Box>
-          </LocalizationProvider>
+            </Grid>
+          </Grid>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ p: 4 }}>
           <Button
-            variant="outlined"
-            color="secondary"
-            onClick={handleCloseDialog}
-            disabled={isLoading}
+            onClick={() => {
+              setDialogOpen(false);
+              setEditRecord(null);
+              setNewRecord({
+                amount: "",
+                category: "",
+                date: new Date().toISOString().split("T")[0],
+                description: "",
+                type: "Expense",
+              });
+              setError("");
+            }}
+            color="primary"
+            sx={{ textTransform: "none", fontSize: "1rem" }}
           >
             Cancel
           </Button>
           <Button
-            type="submit"
+            onClick={editRecord ? handleEditRecord : handleAddRecord}
             variant="contained"
             color="primary"
-            onClick={handleSubmit}
             disabled={isLoading}
-            sx={{ mr: 1 }}
+            sx={{ textTransform: "none", fontSize: "1rem" }}
           >
-            {isLoading
-              ? "Saving..."
-              : editingId
-              ? "Update Record"
-              : "Add Record"}
+            {editRecord ? "Save" : "Add"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog
-        open={deleteConfirmOpen}
-        onClose={handleCloseDeleteConfirm}
-        maxWidth="xs"
-        fullWidth
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, id: null })}
       >
-        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogTitle>Delete Expense</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this record?</Typography>
+          <Typography>Are you sure you want to delete this expense?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDeleteConfirm} color="primary">
+          <Button
+            onClick={() => setDeleteDialog({ open: false, id: null })}
+            color="primary"
+            sx={{ textTransform: "none", fontSize: "1rem" }}
+          >
             Cancel
           </Button>
           <Button
-            onClick={() => handleDelete(deleteId)}
+            onClick={handleDeleteRecord}
+            variant="contained"
+            color="secondary"
+            sx={{ textTransform: "none", fontSize: "1rem" }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={bulkDeleteDialog}
+        onClose={() => setBulkDeleteDialog(false)}
+      >
+        <DialogTitle>Confirm Bulk Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete {selectedExpenses.length} selected
+            expenses? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setBulkDeleteDialog(false)}
+            color="primary"
+            sx={{ textTransform: "none", fontSize: "1rem" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleBulkDelete}
             variant="contained"
             color="error"
-            disabled={isLoading}
+            sx={{ textTransform: "none", fontSize: "1rem" }}
           >
             Delete
           </Button>
@@ -523,6 +1169,7 @@ function Expenses({ token, onRecordAdded, onCategoryAdded, onRecordUpdated }) {
         autoHideDuration={3000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        TransitionComponent={Fade}
       >
         <Alert
           onClose={handleCloseSnackbar}

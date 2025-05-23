@@ -35,6 +35,8 @@ import {
   Fade,
   Backdrop,
   CircularProgress,
+  Paper,
+  InputBase,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -50,6 +52,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LanguageIcon from "@mui/icons-material/Language";
 import NotificationsIcon from "@mui/icons-material/Notifications";
+import SearchIcon from "@mui/icons-material/Search";
 
 function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
   const [categories, setCategories] = useState([]);
@@ -59,6 +62,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, name: "" });
+  const [bulkDeleteDialog, setBulkDeleteDialog] = useState(false);
   const [profile, setProfile] = useState({
     name: "",
     email: "",
@@ -95,6 +99,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
   const [sortBy, setSortBy] = useState("name");
   const [newImage, setNewImage] = useState(null);
   const [isReloading, setIsReloading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const hasChanges = useMemo(() => {
     return initialProfile
@@ -143,7 +148,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
           dateFormat: userProfile.dateFormat || "MM/DD/YYYY",
           theme: fetchedThemeMode,
         }));
-        // Only set mode if it's the initial load or theme has changed
         if (typeof setMode === "function" && fetchedThemeMode !== undefined) {
           setMode(fetchedThemeMode);
         }
@@ -154,7 +158,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
       }
     };
     fetchUserData();
-  }, [token]); // Removed setMode from dependencies to prevent theme reset
+  }, [token]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -193,7 +197,6 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
       const newCat = { ...response.data, userId: currentUserId };
       setCategories([...categories, newCat]);
       setNewCategory("");
-
       setSnackbar({
         open: true,
         message: `Category '${response.data.name}' added successfully!`,
@@ -284,6 +287,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
         categories.filter((cat) => !selectedCategories.includes(cat.name))
       );
       setSelectedCategories([]);
+      setBulkDeleteDialog(false);
       setSnackbar({
         open: true,
         message: "Selected categories deleted successfully!",
@@ -405,7 +409,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
         language: preferences.language,
         currency: preferences.currency,
         dateFormat: preferences.dateFormat,
-        themeMode: preferences.theme, // Use themeMode for backend
+        themeMode: preferences.theme,
       };
       await axios.put("http://127.0.0.1:8001/user", userUpdate, {
         headers: { Authorization: `Bearer ${token}` },
@@ -422,7 +426,7 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
         currency: preferences.currency,
         dateFormat: preferences.dateFormat,
       }));
-      setMode(preferences.theme); // Update app-wide theme immediately
+      setMode(preferences.theme);
       setSnackbar({
         open: true,
         message: "Preferences updated successfully!",
@@ -475,10 +479,13 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
 
   const filteredCategories = categories.filter((cat) => {
     const isUniversal = !cat.userId || cat.userId === "None";
+    const matchesSearch = cat.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
     if (categoryFilter === "user")
-      return !isUniversal && cat.userId === currentUserId;
-    if (categoryFilter === "universal") return isUniversal;
-    return true;
+      return !isUniversal && cat.userId === currentUserId && matchesSearch;
+    if (categoryFilter === "universal") return isUniversal && matchesSearch;
+    return matchesSearch;
   });
 
   const handleCloseSnackbar = (event, reason) => {
@@ -495,7 +502,11 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
 
   return (
     <Box
-      sx={{ p: 4, backgroundColor: "background.default", minHeight: "100vh" }}
+      sx={{
+        p: { xs: 2, sm: 4 },
+        backgroundColor: "background.default",
+        minHeight: "100vh",
+      }}
     >
       <Backdrop
         sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
@@ -514,128 +525,402 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
           </Alert>
         </Fade>
       )}
-      <Tabs
-        value={tabValue}
-        onChange={(e, newValue) => setTabValue(newValue)}
+
+      <Box
         sx={{
-          mb: 4,
-          "& .MuiTab-root": {
-            textTransform: "none",
-            fontSize: "1rem",
-            fontWeight: "medium",
-          },
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          gap: 3,
         }}
       >
-        <Tab
-          label="Profile"
-          icon={<AccountCircleIcon />}
-          iconPosition="start"
-        />
-        <Tab label="Categories" icon={<CategoryIcon />} iconPosition="start" />
-        <Tab label="Preferences" icon={<TuneIcon />} iconPosition="start" />
-        <Tab label="Danger Zone" icon={<WarningIcon />} iconPosition="start" />
-      </Tabs>
+        <Box
+          sx={{
+            width: { xs: "100%", md: 250 },
+            flexShrink: 0,
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            boxShadow: 3,
+            p: 2,
+          }}
+        >
+          <Tabs
+            orientation="vertical"
+            value={tabValue}
+            onChange={(e, newValue) => setTabValue(newValue)}
+            sx={{
+              "& .MuiTab-root": {
+                textTransform: "none",
+                fontSize: "1rem",
+                fontWeight: "medium",
+                justifyContent: "flex-start",
+                borderRadius: 1,
+                mb: 1,
+                "&:hover": {
+                  bgcolor: (theme) => theme.palette.grey[200],
+                },
+                "&.Mui-selected": {
+                  bgcolor: "primary.main",
+                  color: "white",
+                },
+              },
+            }}
+          >
+            <Tab
+              label="Profile"
+              icon={<AccountCircleIcon />}
+              iconPosition="start"
+            />
+            <Tab
+              label="Categories"
+              icon={<CategoryIcon />}
+              iconPosition="start"
+            />
+            <Tab label="Preferences" icon={<TuneIcon />} iconPosition="start" />
+            <Tab
+              label="Danger Zone"
+              icon={<WarningIcon />}
+              iconPosition="start"
+            />
+          </Tabs>
+        </Box>
 
-      {tabValue === 0 && (
-        <Card sx={{ maxWidth: 900, mx: "auto", boxShadow: 3, borderRadius: 2 }}>
-          <CardContent sx={{ p: 4 }}>
-            <Typography
-              variant="h5"
-              gutterBottom
-              sx={{ fontWeight: "bold", mb: 3 }}
-            >
-              Profile
-            </Typography>
-            <Box component="form" onSubmit={handleProfileUpdate}>
-              <Box
+        <Box sx={{ flexGrow: 1 }}>
+          <Fade in={tabValue === 0} timeout={300}>
+            <Box sx={{ display: tabValue === 0 ? "block" : "none" }}>
+              <Card
                 sx={{
-                  mb: 4,
-                  p: 3,
+                  maxWidth: 900,
+                  mx: "auto",
+                  boxShadow: 3,
                   borderRadius: 2,
-                  backgroundColor: "background.paper",
-                  boxShadow: 1,
                 }}
               >
-                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                  <PersonIcon sx={{ mr: 1, color: "primary.main" }} />
-                  <Typography variant="h6" sx={{ fontWeight: "medium" }}>
-                    Personal Information
+                <CardContent sx={{ p: 4 }}>
+                  <Typography
+                    variant="h5"
+                    gutterBottom
+                    sx={{ fontWeight: "bold", mb: 3 }}
+                  >
+                    Profile
                   </Typography>
-                </Box>
-                <Grid container spacing={4}>
-                  <Grid item xs={12} sx={{ width: "100%", display: "block" }}>
+                  <Box component="form" onSubmit={handleProfileUpdate}>
+                    <Box
+                      sx={{
+                        mb: 4,
+                        p: 3,
+                        borderRadius: 2,
+                        backgroundColor: "background.paper",
+                        boxShadow: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mb: 3 }}
+                      >
+                        <PersonIcon sx={{ mr: 1, color: "primary.main" }} />
+                        <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+                          Personal Information
+                        </Typography>
+                      </Box>
+                      <Grid container spacing={4}>
+                        <Grid
+                          item
+                          xs={12}
+                          sx={{ width: "100%", display: "block" }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              gap: 2,
+                            }}
+                          >
+                            <Avatar
+                              src={newImage || profile.image || null}
+                              alt="Profile Image"
+                              sx={{
+                                width: 120,
+                                height: 120,
+                                border: "2px solid",
+                                borderColor: "primary.main",
+                              }}
+                            />
+                            <Box sx={{ display: "flex", gap: 2 }}>
+                              <Button
+                                variant="contained"
+                                color="primary"
+                                component="label"
+                                startIcon={<UploadFileIcon />}
+                                disabled={isLoading}
+                                sx={{
+                                  px: 2,
+                                  py: 0.5,
+                                  borderRadius: 1,
+                                  textTransform: "none",
+                                  fontSize: "0.95rem",
+                                  backgroundColor: "primary.main",
+                                  "&:hover": {
+                                    backgroundColor: "primary.dark",
+                                  },
+                                }}
+                              >
+                                Upload Image
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  hidden
+                                  onChange={handleImageUpload}
+                                />
+                              </Button>
+                              <Button
+                                variant="contained"
+                                color="error"
+                                startIcon={<ClearIcon />}
+                                onClick={handleRemoveImage}
+                                disabled={
+                                  isLoading || (!newImage && !profile.image)
+                                }
+                                sx={{
+                                  px: 2,
+                                  py: 0.5,
+                                  borderRadius: 1,
+                                  textTransform: "none",
+                                  fontSize: "0.95rem",
+                                  backgroundColor: "error.main",
+                                  "&:hover": { backgroundColor: "error.dark" },
+                                }}
+                              >
+                                Remove Image
+                              </Button>
+                            </Box>
+                          </Box>
+                        </Grid>
+                        <Grid
+                          item
+                          xs={12}
+                          sx={{ width: "100%", display: "block", mt: 2 }}
+                        >
+                          <TextField
+                            label="Name"
+                            value={profile.name}
+                            onChange={(e) =>
+                              setProfile({ ...profile, name: e.target.value })
+                            }
+                            fullWidth
+                            margin="normal"
+                            disabled={isLoading}
+                            variant="outlined"
+                            sx={{
+                              "& .MuiInputLabel-root": { fontSize: "0.95rem" },
+                              "& .MuiOutlinedInput-root": { borderRadius: 1 },
+                            }}
+                          />
+                        </Grid>
+                        <Grid
+                          item
+                          xs={12}
+                          sx={{ width: "100%", display: "block" }}
+                        >
+                          <TextField
+                            label="Email"
+                            value={profile.email}
+                            onChange={(e) =>
+                              setProfile({ ...profile, email: e.target.value })
+                            }
+                            fullWidth
+                            margin="normal"
+                            disabled={isLoading}
+                            type="email"
+                            variant="outlined"
+                            sx={{
+                              "& .MuiInputLabel-root": { fontSize: "0.95rem" },
+                              "& .MuiOutlinedInput-root": { borderRadius: 1 },
+                            }}
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+
+                    <Box
+                      sx={{
+                        mb: 4,
+                        p: 3,
+                        borderRadius: 2,
+                        backgroundColor: "background.paper",
+                        boxShadow: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", mb: 3 }}
+                      >
+                        <LockIcon sx={{ mr: 1, color: "primary.main" }} />
+                        <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+                          Change Password
+                        </Typography>
+                      </Box>
+                      <Grid container spacing={3}>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="New Password"
+                            type="password"
+                            value={profile.newPassword}
+                            onChange={(e) =>
+                              setProfile({
+                                ...profile,
+                                newPassword: e.target.value,
+                              })
+                            }
+                            fullWidth
+                            margin="normal"
+                            disabled={isLoading}
+                            error={
+                              profile.newPassword &&
+                              profile.newPassword.length < 8
+                            }
+                            helperText={
+                              profile.newPassword &&
+                              profile.newPassword.length < 8
+                                ? "Password must be at least 8 characters"
+                                : ""
+                            }
+                            autoComplete="new-password"
+                            variant="outlined"
+                            sx={{
+                              "& .MuiInputLabel-root": { fontSize: "0.95rem" },
+                              "& .MuiOutlinedInput-root": { borderRadius: 1 },
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            label="Confirm New Password"
+                            type="password"
+                            value={profile.confirmNewPassword}
+                            onChange={(e) =>
+                              setProfile({
+                                ...profile,
+                                confirmNewPassword: e.target.value,
+                              })
+                            }
+                            fullWidth
+                            margin="normal"
+                            disabled={isLoading}
+                            error={
+                              profile.newPassword &&
+                              profile.confirmNewPassword &&
+                              profile.newPassword !== profile.confirmNewPassword
+                            }
+                            helperText={
+                              profile.newPassword &&
+                              profile.confirmNewPassword &&
+                              profile.newPassword !== profile.confirmNewPassword
+                                ? "Passwords do not match"
+                                : ""
+                            }
+                            autoComplete="new-password"
+                            variant="outlined"
+                            sx={{
+                              "& .MuiInputLabel-root": { fontSize: "0.95rem" },
+                              "& .MuiOutlinedInput-root": { borderRadius: 1 },
+                            }}
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+
+                    {profileProgress > 0 && (
+                      <Fade in={profileProgress > 0}>
+                        <Box sx={{ mb: 3 }}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={profileProgress}
+                            sx={{ transition: "value 0.3s ease" }}
+                          />
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mt: 1 }}
+                          >
+                            {profileStep}
+                          </Typography>
+                        </Box>
+                      </Fade>
+                    )}
                     <Box
                       sx={{
                         display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
+                        justifyContent: "flex-end",
                         gap: 2,
                       }}
                     >
-                      <Avatar
-                        src={newImage || profile.image || null}
-                        alt="Profile Image"
-                        sx={{ width: 120, height: 120 }}
-                      />
-                      <Box sx={{ display: "flex", gap: 2 }}>
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          component="label"
-                          startIcon={<UploadFileIcon />}
-                          disabled={isLoading}
-                          sx={{
-                            px: 2,
-                            py: 0.5,
-                            borderRadius: 1,
-                            textTransform: "none",
-                            fontSize: "0.95rem",
-                            backgroundColor: "primary.main",
-                            "&:hover": { backgroundColor: "primary.dark" },
-                          }}
-                        >
-                          Upload Image
-                          <input
-                            type="file"
-                            accept="image/*"
-                            hidden
-                            onChange={handleImageUpload}
-                          />
-                        </Button>
-                        <Button
-                          variant="contained"
-                          color="error"
-                          startIcon={<ClearIcon />}
-                          onClick={handleRemoveImage}
-                          disabled={isLoading || (!newImage && !profile.image)}
-                          sx={{
-                            px: 2,
-                            py: 0.5,
-                            borderRadius: 1,
-                            textTransform: "none",
-                            fontSize: "0.95rem",
-                            backgroundColor: "error.main",
-                            "&:hover": { backgroundColor: "error.dark" },
-                          }}
-                        >
-                          Remove Image
-                        </Button>
-                      </Box>
+                      <Button
+                        variant="outlined"
+                        color="secondary"
+                        onClick={handleDiscardChanges}
+                        disabled={
+                          isLoading || profileProgress > 0 || !hasChanges
+                        }
+                        sx={{
+                          px: 4,
+                          py: 1,
+                          borderRadius: 1,
+                          textTransform: "none",
+                          fontSize: "1rem",
+                        }}
+                      >
+                        Discard Changes
+                      </Button>
+                      <Button
+                        type="submit"
+                        variant="contained"
+                        color="primary"
+                        disabled={
+                          isLoading || profileProgress > 0 || !hasChanges
+                        }
+                        sx={{
+                          px: 4,
+                          py: 1,
+                          borderRadius: 1,
+                          textTransform: "none",
+                          fontSize: "1rem",
+                          "&:hover": {
+                            backgroundColor: "primary.dark",
+                          },
+                        }}
+                      >
+                        {isLoading ? "Updating..." : "Save Changes"}
+                      </Button>
                     </Box>
-                  </Grid>
-                  <Grid
-                    item
-                    xs={12}
-                    sx={{ width: "100%", display: "block", mt: 2 }}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          </Fade>
+
+          <Fade in={tabValue === 1} timeout={300}>
+            <Box sx={{ display: tabValue === 1 ? "block" : "none" }}>
+              <Card sx={{ mb: 4, boxShadow: 3, borderRadius: 2 }}>
+                <CardContent sx={{ p: 4 }}>
+                  <Typography
+                    variant="h5"
+                    gutterBottom
+                    sx={{ fontWeight: "bold", mb: 3 }}
+                  >
+                    Category Management
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 2,
+                      mb: 3,
+                      flexDirection: { xs: "column", sm: "row" },
+                    }}
                   >
                     <TextField
-                      label="Name"
-                      value={profile.name}
-                      onChange={(e) =>
-                        setProfile({ ...profile, name: e.target.value })
-                      }
+                      label="New Category"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
                       fullWidth
-                      margin="normal"
                       disabled={isLoading}
                       variant="outlined"
                       sx={{
@@ -643,589 +928,473 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
                         "& .MuiOutlinedInput-root": { borderRadius: 1 },
                       }}
                     />
-                  </Grid>
-                  <Grid item xs={12} sx={{ width: "100%", display: "block" }}>
-                    <TextField
-                      label="Email"
-                      value={profile.email}
-                      onChange={(e) =>
-                        setProfile({ ...profile, email: e.target.value })
-                      }
-                      fullWidth
-                      margin="normal"
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handleAddCategory}
                       disabled={isLoading}
-                      type="email"
-                      variant="outlined"
                       sx={{
-                        "& .MuiInputLabel-root": { fontSize: "0.95rem" },
-                        "& .MuiOutlinedInput-root": { borderRadius: 1 },
+                        px: 4,
+                        py: 1,
+                        borderRadius: 1,
+                        textTransform: "none",
+                        fontSize: "1rem",
+                        minWidth: { xs: "100%", sm: "auto" },
                       }}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-
-              <Box
-                sx={{
-                  mb: 4,
-                  p: 3,
-                  borderRadius: 2,
-                  backgroundColor: "background.paper",
-                  boxShadow: 1,
-                }}
-              >
-                <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                  <LockIcon sx={{ mr: 1, color: "primary.main" }} />
-                  <Typography variant="h6" sx={{ fontWeight: "medium" }}>
-                    Change Password
-                  </Typography>
-                </Box>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="New Password"
-                      type="password"
-                      value={profile.newPassword}
-                      onChange={(e) =>
-                        setProfile({ ...profile, newPassword: e.target.value })
-                      }
-                      fullWidth
-                      margin="normal"
-                      disabled={isLoading}
-                      error={
-                        profile.newPassword && profile.newPassword.length < 8
-                      }
-                      helperText={
-                        profile.newPassword && profile.newPassword.length < 8
-                          ? "Password must be at least 8 characters"
-                          : ""
-                      }
-                      autoComplete="new-password"
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputLabel-root": { fontSize: "0.95rem" },
-                        "& .MuiOutlinedInput-root": { borderRadius: 1 },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      label="Confirm New Password"
-                      type="password"
-                      value={profile.confirmNewPassword}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          confirmNewPassword: e.target.value,
-                        })
-                      }
-                      fullWidth
-                      margin="normal"
-                      disabled={isLoading}
-                      error={
-                        profile.newPassword &&
-                        profile.confirmNewPassword &&
-                        profile.newPassword !== profile.confirmNewPassword
-                      }
-                      helperText={
-                        profile.newPassword &&
-                        profile.confirmNewPassword &&
-                        profile.newPassword !== profile.confirmNewPassword
-                          ? "Passwords do not match"
-                          : ""
-                      }
-                      autoComplete="new-password"
-                      variant="outlined"
-                      sx={{
-                        "& .MuiInputLabel-root": { fontSize: "0.95rem" },
-                        "& .MuiOutlinedInput-root": { borderRadius: 1 },
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {profileProgress > 0 && (
-                <Fade in={profileProgress > 0}>
-                  <Box sx={{ mb: 3 }}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={profileProgress}
-                    />
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ mt: 1 }}
                     >
-                      {profileStep}
-                    </Typography>
+                      {isLoading ? "Adding..." : "Add"}
+                    </Button>
                   </Box>
-                </Fade>
-              )}
-              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleDiscardChanges}
-                  disabled={isLoading || profileProgress > 0 || !hasChanges}
-                  sx={{
-                    px: 4,
-                    py: 1,
-                    borderRadius: 1,
-                    textTransform: "none",
-                    fontSize: "1rem",
-                  }}
-                >
-                  Discard Changes
-                </Button>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  disabled={isLoading || profileProgress > 0 || !hasChanges}
-                  sx={{
-                    px: 4,
-                    py: 1,
-                    borderRadius: 1,
-                    textTransform: "none",
-                    fontSize: "1rem",
-                    "&:hover": {
-                      backgroundColor: "primary.dark",
-                    },
-                  }}
-                >
-                  {isLoading ? "Updating..." : "Save Changes"}
-                </Button>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-      )}
-
-      {tabValue === 1 && (
-        <Card sx={{ mb: 4, boxShadow: 3, borderRadius: 2 }}>
-          <CardContent sx={{ p: 4 }}>
-            <Typography
-              variant="h5"
-              gutterBottom
-              sx={{ fontWeight: "bold", mb: 3 }}
-            >
-              Category Management
-            </Typography>
-            <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-              <TextField
-                label="New Category"
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value)}
-                fullWidth
-                disabled={isLoading}
-                variant="outlined"
-                sx={{
-                  "& .MuiInputLabel-root": { fontSize: "0.95rem" },
-                  "& .MuiOutlinedInput-root": { borderRadius: 1 },
-                }}
-              />
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleAddCategory}
-                disabled={isLoading}
-                sx={{
-                  px: 4,
-                  py: 1,
-                  borderRadius: 1,
-                  textTransform: "none",
-                  fontSize: "1rem",
-                }}
-              >
-                {isLoading ? "Adding..." : "Add"}
-              </Button>
-            </Box>
-            <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-              <FormControl sx={{ minWidth: 200 }}>
-                <InputLabel sx={{ fontSize: "0.95rem" }}>Filter</InputLabel>
-                <Select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  label="Filter"
-                  sx={{ borderRadius: 1 }}
-                >
-                  <MenuItem value="all">All</MenuItem>
-                  <MenuItem value="user">User-Specific</MenuItem>
-                  <MenuItem value="universal">Universal</MenuItem>
-                </Select>
-              </FormControl>
-              {selectedCategories.length > 0 && (
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={handleBulkDelete}
-                  disabled={isLoading}
-                  sx={{
-                    px: 4,
-                    py: 1,
-                    borderRadius: 1,
-                    textTransform: "none",
-                    fontSize: "1rem",
-                  }}
-                >
-                  Delete Selected ({selectedCategories.length})
-                </Button>
-              )}
-            </Box>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>
-                    <Checkbox
-                      checked={
-                        selectedCategories.length === filteredCategories.length
-                      }
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedCategories(
-                            filteredCategories
-                              .filter((cat) => canEditCategory(cat))
-                              .map((cat) => cat.name)
-                          );
-                        } else {
-                          setSelectedCategories([]);
-                        }
-                      }}
-                      disabled={isLoading}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={sortBy === "name"}
-                      direction={sortBy === "name" ? sortDirection : "asc"}
-                      onClick={() => handleSort("name")}
-                    >
-                      Category
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>Ownership</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredCategories.map((cat) => (
-                  <TableRow key={cat.name}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedCategories.includes(cat.name)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedCategories([
-                              ...selectedCategories,
-                              cat.name,
-                            ]);
-                          } else {
-                            setSelectedCategories(
-                              selectedCategories.filter(
-                                (name) => name !== cat.name
-                              )
-                            );
-                          }
-                        }}
-                        disabled={isLoading || !canEditCategory(cat)}
-                      />
-                    </TableCell>
-                    <TableCell
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: 2,
+                      mb: 3,
+                      flexDirection: { xs: "column", sm: "row" },
+                    }}
+                  >
+                    <Paper
+                      component="form"
                       sx={{
-                        fontStyle:
-                          cat.userId && cat.userId !== "None"
-                            ? "normal"
-                            : "italic",
+                        p: "2px 4px",
+                        display: "flex",
+                        alignItems: "center",
+                        width: { xs: "100%", sm: 300 },
+                        borderRadius: 1,
+                        bgcolor: "background.paper",
                       }}
                     >
-                      {cat.name}
-                    </TableCell>
-                    <TableCell>
-                      {cat.userId && cat.userId !== "None"
-                        ? "User-Specific"
-                        : "Universal"}
-                    </TableCell>
-                    <TableCell>
-                      {canEditCategory(cat) ? (
-                        <>
-                          <IconButton
-                            onClick={() => {
-                              setEditCategory(cat.name);
-                              setEditName(cat.name);
+                      <InputBase
+                        sx={{ ml: 1, flex: 1 }}
+                        placeholder="Search categories"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        disabled={isLoading}
+                      />
+                      <IconButton sx={{ p: "10px" }} aria-label="search">
+                        <SearchIcon />
+                      </IconButton>
+                    </Paper>
+                    <FormControl sx={{ minWidth: { xs: "100%", sm: 200 } }}>
+                      <InputLabel sx={{ fontSize: "0.95rem" }}>
+                        Filter
+                      </InputLabel>
+                      <Select
+                        value={categoryFilter}
+                        onChange={(e) => setCategoryFilter(e.target.value)}
+                        label="Filter"
+                        sx={{ borderRadius: 1 }}
+                        disabled={isLoading}
+                      >
+                        <MenuItem value="all">All</MenuItem>
+                        <MenuItem value="user">User-Specific</MenuItem>
+                        <MenuItem value="universal">Universal</MenuItem>
+                      </Select>
+                    </FormControl>
+                    {selectedCategories.length > 0 && (
+                      <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => setBulkDeleteDialog(true)}
+                        disabled={isLoading}
+                        sx={{
+                          px: 4,
+                          py: 1,
+                          borderRadius: 1,
+                          textTransform: "none",
+                          fontSize: "1rem",
+                          minWidth: { xs: "100%", sm: "auto" },
+                        }}
+                      >
+                        Delete Selected ({selectedCategories.length})
+                      </Button>
+                    )}
+                  </Box>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>
+                          <Checkbox
+                            checked={
+                              selectedCategories.length ===
+                              filteredCategories.length
+                            }
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedCategories(
+                                  filteredCategories
+                                    .filter((cat) => canEditCategory(cat))
+                                    .map((cat) => cat.name)
+                                );
+                              } else {
+                                setSelectedCategories([]);
+                              }
                             }}
                             disabled={isLoading}
-                            color="primary"
-                            aria-label={`Edit category ${cat.name}`}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            onClick={() =>
-                              setDeleteDialog({ open: true, name: cat.name })
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TableSortLabel
+                            active={sortBy === "name"}
+                            direction={
+                              sortBy === "name" ? sortDirection : "asc"
                             }
-                            disabled={isLoading}
-                            color="secondary"
-                            aria-label={`Delete category ${cat.name}`}
+                            onClick={() => handleSort("name")}
                           >
-                            <DeleteIcon />
-                          </IconButton>
-                        </>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          {userRole === "admin"
-                            ? "No actions available"
-                            : "Admin access required"}
-                        </Typography>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+                            Category
+                          </TableSortLabel>
+                        </TableCell>
+                        <TableCell>Ownership</TableCell>
+                        <TableCell>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredCategories.map((cat) => (
+                        <TableRow
+                          key={cat.name}
+                          sx={{
+                            "&:hover": {
+                              bgcolor: (theme) => theme.palette.grey[100],
+                            },
+                          }}
+                        >
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedCategories.includes(cat.name)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedCategories([
+                                    ...selectedCategories,
+                                    cat.name,
+                                  ]);
+                                } else {
+                                  setSelectedCategories(
+                                    selectedCategories.filter(
+                                      (name) => name !== cat.name
+                                    )
+                                  );
+                                }
+                              }}
+                              disabled={isLoading || !canEditCategory(cat)}
+                            />
+                          </TableCell>
+                          <TableCell
+                            sx={{
+                              fontStyle:
+                                cat.userId && cat.userId !== "None"
+                                  ? "normal"
+                                  : "italic",
+                            }}
+                          >
+                            {cat.name}
+                          </TableCell>
+                          <TableCell>
+                            {cat.userId && cat.userId !== "None"
+                              ? "User-Specific"
+                              : "Universal"}
+                          </TableCell>
+                          <TableCell>
+                            {canEditCategory(cat) ? (
+                              <>
+                                <IconButton
+                                  onClick={() => {
+                                    setEditCategory(cat.name);
+                                    setEditName(cat.name);
+                                  }}
+                                  disabled={isLoading}
+                                  color="primary"
+                                  aria-label={`Edit category ${cat.name}`}
+                                >
+                                  <EditIcon />
+                                </IconButton>
+                                <IconButton
+                                  onClick={() =>
+                                    setDeleteDialog({
+                                      open: true,
+                                      name: cat.name,
+                                    })
+                                  }
+                                  disabled={isLoading}
+                                  color="secondary"
+                                  aria-label={`Delete category ${cat.name}`}
+                                >
+                                  <DeleteIcon />
+                                </IconButton>
+                              </>
+                            ) : (
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                {userRole === "admin"
+                                  ? "No actions available"
+                                  : "Admin access required"}
+                              </Typography>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </Box>
+          </Fade>
 
-      {tabValue === 2 && (
-        <Card
-          sx={{
-            mb: 4,
-            boxShadow: 3,
-            borderRadius: 2,
-            maxWidth: 900,
-            mx: "auto",
-          }}
-        >
-          <CardContent sx={{ p: 4 }}>
-            <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-              <SettingsIcon sx={{ mr: 1, color: "primary.main" }} />
-              <Typography
-                variant="h5"
-                gutterBottom
-                sx={{ fontWeight: "bold", mb: 0 }}
+          <Fade in={tabValue === 2} timeout={300}>
+            <Box sx={{ display: tabValue === 2 ? "block" : "none" }}>
+              <Card
+                sx={{
+                  mb: 4,
+                  boxShadow: 3,
+                  borderRadius: 2,
+                  maxWidth: 900,
+                  mx: "auto",
+                }}
               >
-                Preferences
-              </Typography>
-            </Box>
+                <CardContent sx={{ p: 4 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                    <SettingsIcon sx={{ mr: 1, color: "primary.main" }} />
+                    <Typography
+                      variant="h5"
+                      gutterBottom
+                      sx={{ fontWeight: "bold", mb: 0 }}
+                    >
+                      Preferences
+                    </Typography>
+                  </Box>
 
-            {/* Appearance Section */}
-            <Box
-              sx={{
-                mb: 4,
-                p: 3,
-                borderRadius: 2,
-                backgroundColor: "background.paper",
-                boxShadow: 1,
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <PaletteIcon sx={{ mr: 1, color: "primary.main" }} />
-                <Typography variant="h6" sx={{ fontWeight: "medium" }}>
-                  Appearance
-                </Typography>
-              </Box>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={preferences.theme === "dark"}
-                    onChange={(e) =>
-                      setPreferences({
-                        ...preferences,
-                        theme: e.target.checked ? "dark" : "light",
-                      })
-                    }
-                    color="primary"
-                  />
-                }
-                label="Dark Mode"
-                sx={{ "& .MuiTypography-root": { fontSize: "0.95rem" } }}
-              />
-            </Box>
-
-            {/* Regional Settings Section */}
-            <Box
-              sx={{
-                mb: 4,
-                p: 3,
-                borderRadius: 2,
-                backgroundColor: "background.paper",
-                boxShadow: 1,
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <LanguageIcon sx={{ mr: 1, color: "primary.main" }} />
-                <Typography variant="h6" sx={{ fontWeight: "medium" }}>
-                  Regional Settings
-                </Typography>
-              </Box>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <FormControl sx={{ maxWidth: 300 }}>
-                  <InputLabel sx={{ fontSize: "0.95rem" }}>Language</InputLabel>
-                  <Select
-                    value={preferences.language}
-                    onChange={(e) =>
-                      setPreferences({
-                        ...preferences,
-                        language: e.target.value,
-                      })
-                    }
-                    label="Language"
-                    disabled={isLoading}
-                    sx={{ borderRadius: 1, fontSize: "0.95rem" }}
+                  <Box
+                    sx={{
+                      mb: 4,
+                      p: 3,
+                      borderRadius: 2,
+                      backgroundColor: "background.paper",
+                      boxShadow: 1,
+                    }}
                   >
-                    <MenuItem value="English">English</MenuItem>
-                    <MenuItem value="Spanish">Spanish</MenuItem>
-                  </Select>
-                </FormControl>
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <FormControl sx={{ maxWidth: 300 }}>
-                    <InputLabel sx={{ fontSize: "0.95rem" }}>
-                      Currency
-                    </InputLabel>
-                    <Select
-                      value={preferences.currency}
-                      onChange={(e) =>
-                        setPreferences({
-                          ...preferences,
-                          currency: e.target.value,
-                        })
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                      <PaletteIcon sx={{ mr: 1, color: "primary.main" }} />
+                      <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+                        Appearance
+                      </Typography>
+                    </Box>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={preferences.theme === "dark"}
+                          onChange={(e) =>
+                            setPreferences({
+                              ...preferences,
+                              theme: e.target.checked ? "dark" : "light",
+                            })
+                          }
+                          color="primary"
+                        />
                       }
-                      label="Currency"
-                      disabled={isLoading}
-                      sx={{ borderRadius: 1, fontSize: "0.95rem" }}
+                      label="Dark Mode"
+                      sx={{ "& .MuiTypography-root": { fontSize: "0.95rem" } }}
+                    />
+                  </Box>
+
+                  <Box
+                    sx={{
+                      mb: 4,
+                      p: 3,
+                      borderRadius: 2,
+                      backgroundColor: "background.paper",
+                      boxShadow: 1,
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                      <LanguageIcon sx={{ mr: 1, color: "primary.main" }} />
+                      <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+                        Regional Settings
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
                     >
-                      <MenuItem value="USD">USD</MenuItem>
-                      <MenuItem value="EUR">EUR</MenuItem>
-                      <MenuItem value="GBP">GBP</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <FormControl sx={{ maxWidth: 300 }}>
-                    <InputLabel sx={{ fontSize: "0.95rem" }}>
-                      Date Format
-                    </InputLabel>
-                    <Select
-                      value={preferences.dateFormat}
-                      onChange={(e) =>
-                        setPreferences({
-                          ...preferences,
-                          dateFormat: e.target.value,
-                        })
+                      <FormControl sx={{ maxWidth: 300 }}>
+                        <InputLabel sx={{ fontSize: "0.95rem" }}>
+                          Language
+                        </InputLabel>
+                        <Select
+                          value={preferences.language}
+                          onChange={(e) =>
+                            setPreferences({
+                              ...preferences,
+                              language: e.target.value,
+                            })
+                          }
+                          label="Language"
+                          disabled={isLoading}
+                          sx={{ borderRadius: 1, fontSize: "0.95rem" }}
+                        >
+                          <MenuItem value="English">English</MenuItem>
+                          <MenuItem value="Spanish">Spanish</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          gap: 2,
+                          flexDirection: { xs: "column", sm: "row" },
+                        }}
+                      >
+                        <FormControl sx={{ maxWidth: 300, width: "100%" }}>
+                          <InputLabel sx={{ fontSize: "0.95rem" }}>
+                            Currency
+                          </InputLabel>
+                          <Select
+                            value={preferences.currency}
+                            onChange={(e) =>
+                              setPreferences({
+                                ...preferences,
+                                currency: e.target.value,
+                              })
+                            }
+                            label="Currency"
+                            disabled={isLoading}
+                            sx={{ borderRadius: 1, fontSize: "0.95rem" }}
+                          >
+                            <MenuItem value="USD">USD</MenuItem>
+                            <MenuItem value="EUR">EUR</MenuItem>
+                            <MenuItem value="GBP">GBP</MenuItem>
+                          </Select>
+                        </FormControl>
+                        <FormControl sx={{ maxWidth: 300, width: "100%" }}>
+                          <InputLabel sx={{ fontSize: "0.95rem" }}>
+                            Date Format
+                          </InputLabel>
+                          <Select
+                            value={preferences.dateFormat}
+                            onChange={(e) =>
+                              setPreferences({
+                                ...preferences,
+                                dateFormat: e.target.value,
+                              })
+                            }
+                            label="Date Format"
+                            disabled={isLoading}
+                            sx={{ borderRadius: 1, fontSize: "0.95rem" }}
+                          >
+                            <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
+                            <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
+                            <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      mb: 4,
+                      p: 3,
+                      borderRadius: 2,
+                      backgroundColor: "background.paper",
+                      boxShadow: 1,
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                      <NotificationsIcon
+                        sx={{ mr: 1, color: "primary.main" }}
+                      />
+                      <Typography variant="h6" sx={{ fontWeight: "medium" }}>
+                        Notifications
+                      </Typography>
+                    </Box>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={preferences.notifications}
+                          onChange={(e) =>
+                            setPreferences({
+                              ...preferences,
+                              notifications: e.target.checked,
+                            })
+                          }
+                          color="primary"
+                        />
                       }
-                      label="Date Format"
+                      label="Enable Email Notifications"
+                      sx={{ "& .MuiTypography-root": { fontSize: "0.95rem" } }}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={handlePreferencesUpdate}
                       disabled={isLoading}
-                      sx={{ borderRadius: 1, fontSize: "0.95rem" }}
+                      sx={{
+                        px: 4,
+                        py: 1,
+                        borderRadius: 1,
+                        textTransform: "none",
+                        fontSize: "1rem",
+                        "&:hover": {
+                          backgroundColor: "primary.dark",
+                        },
+                      }}
                     >
-                      <MenuItem value="MM/DD/YYYY">MM/DD/YYYY</MenuItem>
-                      <MenuItem value="DD/MM/YYYY">DD/MM/YYYY</MenuItem>
-                      <MenuItem value="YYYY-MM-DD">YYYY-MM-DD</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Box>
-              </Box>
+                      {isLoading ? "Saving..." : "Save Preferences"}
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
             </Box>
+          </Fade>
 
-            {/* Notifications Section */}
-            <Box
-              sx={{
-                mb: 4,
-                p: 3,
-                borderRadius: 2,
-                backgroundColor: "background.paper",
-                boxShadow: 1,
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-                <NotificationsIcon sx={{ mr: 1, color: "primary.main" }} />
-                <Typography variant="h6" sx={{ fontWeight: "medium" }}>
-                  Notifications
-                </Typography>
-              </Box>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={preferences.notifications}
-                    onChange={(e) =>
-                      setPreferences({
-                        ...preferences,
-                        notifications: e.target.checked,
-                      })
-                    }
-                    color="primary"
-                  />
-                }
-                label="Enable Email Notifications"
-                sx={{ "& .MuiTypography-root": { fontSize: "0.95rem" } }}
-              />
-            </Box>
-
-            {/* Save Button */}
-            <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handlePreferencesUpdate}
-                disabled={isLoading}
+          <Fade in={tabValue === 3} timeout={300}>
+            <Box sx={{ display: tabValue === 3 ? "block" : "none" }}>
+              <Card
                 sx={{
-                  px: 4,
-                  py: 1,
-                  borderRadius: 1,
-                  textTransform: "none",
-                  fontSize: "1rem",
-                  "&:hover": {
-                    backgroundColor: "primary.dark",
-                  },
+                  mb: 4,
+                  border: "1px solid",
+                  borderColor: "error.main",
+                  boxShadow: 3,
+                  borderRadius: 2,
                 }}
               >
-                {isLoading ? "Saving..." : "Save Preferences"}
-              </Button>
+                <CardContent sx={{ p: 4 }}>
+                  <Typography
+                    variant="h5"
+                    gutterBottom
+                    color="error"
+                    sx={{ fontWeight: "bold", mb: 3 }}
+                  >
+                    Danger Zone
+                  </Typography>
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body1" gutterBottom>
+                      Delete your account and all associated data.
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      onClick={() => setDeleteAccountDialog(true)}
+                      disabled={isLoading}
+                      startIcon={<WarningIcon />}
+                      sx={{
+                        px: 4,
+                        py: 1,
+                        borderRadius: 1,
+                        textTransform: "none",
+                        fontSize: "1rem",
+                      }}
+                    >
+                      Delete Account
+                    </Button>
+                  </Box>
+                </CardContent>
+              </Card>
             </Box>
-          </CardContent>
-        </Card>
-      )}
-
-      {tabValue === 3 && (
-        <Card
-          sx={{
-            mb: 4,
-            border: "1px solid",
-            borderColor: "error.main",
-            boxShadow: 3,
-            borderRadius: 2,
-          }}
-        >
-          <CardContent sx={{ p: 4 }}>
-            <Typography
-              variant="h5"
-              gutterBottom
-              color="error"
-              sx={{ fontWeight: "bold", mb: 3 }}
-            >
-              Danger Zone
-            </Typography>
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body1" gutterBottom>
-                Delete your account and all associated data.
-              </Typography>
-              <Button
-                variant="contained"
-                color="error"
-                onClick={() => setDeleteAccountDialog(true)}
-                disabled={isLoading}
-                sx={{
-                  px: 4,
-                  py: 1,
-                  borderRadius: 1,
-                  textTransform: "none",
-                  fontSize: "1rem",
-                }}
-              >
-                Delete Account
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
-      )}
+          </Fade>
+        </Box>
+      </Box>
 
       <Dialog
         open={editCategory !== null}
@@ -1287,6 +1456,36 @@ function Settings({ token, onCategoryUpdated, onProfileUpdated, setMode }) {
             onClick={handleDeleteCategory}
             variant="contained"
             color="secondary"
+            sx={{ textTransform: "none", fontSize: "1rem" }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={bulkDeleteDialog}
+        onClose={() => setBulkDeleteDialog(false)}
+      >
+        <DialogTitle>Confirm Bulk Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete {selectedCategories.length} selected
+            categories? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setBulkDeleteDialog(false)}
+            color="primary"
+            sx={{ textTransform: "none", fontSize: "1rem" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleBulkDelete}
+            variant="contained"
+            color="error"
             sx={{ textTransform: "none", fontSize: "1rem" }}
           >
             Delete
