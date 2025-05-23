@@ -38,6 +38,7 @@ A personal/family expense tracker built with FastAPI, React, and MongoDB.
 |   |   └── README.md
 |   ├── .python-version
 |   ├── generate_hash.py
+|   ├── makefile
 |   ├── requirements.txt
 |   └── ruff.toml
 ├── docs
@@ -45,7 +46,34 @@ A personal/family expense tracker built with FastAPI, React, and MongoDB.
 |   ├── mongondb_setup_summary.md
 |   ├── README.md
 |   └── requirements.md
+├── frontend
+|   ├── public
+|   |   ├── favicon.png
+|   |   └── vite.svg
+|   ├── src
+|   |   ├── components
+|   |   |   ├── AdminApproval.jsx
+|   |   |   ├── Calendar.jsx
+|   |   |   ├── Dashboard.jsx
+|   |   |   ├── Expenses.jsx
+|   |   |   ├── ForgotPassword.jsx
+|   |   |   ├── Login.jsx
+|   |   |   ├── Settings.jsx
+|   |   |   ├── Sidebar.jsx
+|   |   |   └── Signup.jsx
+|   |   ├── App.jsx
+|   |   ├── main.jsx
+|   |   └── theme.js
+|   ├── README.md
+|   ├── eslint.config.js
+|   ├── index.html
+|   ├── package.json
+|   ├── package-lock.json
+|   ├── tsconfig.app.json
+|   ├── tsconfig.json
+|   ├── tsconfig.node.json
+|   ├── vite.config.ts
+|   └── requirements.md
 ├── .gitignore
-├── makefile
 └── README.md
 ```
